@@ -1,0 +1,94 @@
+import React, { useState } from 'react';
+import styles from '../../styles/login.module.css'; 
+import Header from '@/components/head';
+import axios from 'axios';
+import { useRouter } from 'next/router';
+
+const Login = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const router = useRouter();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post('http://localhost:3000/api/back/mod/login', {
+        email,
+        password
+      });
+
+      if (response.data.success) {
+        // Stocker le token ou les infos utilisateur si nécessaire
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('role', response.data.role);
+
+        // Rediriger selon le rôle
+        switch(response.data.role) {
+          case 'Admin':
+            router.push('/front/page2');
+            break;
+          case 'Médecin':
+            router.push('/front/medecin');
+            break;
+          case 'Responsable':
+            router.push('/responsable/dashboard');
+            break;
+          default:
+            router.push('/');
+        }
+      } else {
+        setError('Email ou mot de passe incorrect');
+      }
+    } catch (err) {
+      setError('Une erreur est survenue lors de la connexion');
+    }
+  };
+
+  return (
+    <>
+      <Header />
+      <div className={styles.container}>
+        <div className={styles.leftPanel}></div>
+        <div className={styles.formContainer}>
+          <form onSubmit={handleSubmit}>
+            <h2 className={styles.title}>Bienvenue</h2>
+            <p className={styles.subtitle}>Saisissez votre adresse courriel pour vous connecter à votre compte</p>
+            
+            {error && <div className={styles.error}>{error}</div>}
+            
+            <div className={styles.inputGroup}>
+              <label className={styles.label}>Adresse courriel</label>
+              <input 
+                type="email" 
+                className={styles.inputField}
+                placeholder="Entrez votre email"
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                required 
+              />
+            </div>
+            <div className={styles.inputGroup}>
+              <label className={styles.label}>Mot de passe</label>
+              <input 
+                type="password" 
+                className={styles.inputField}
+                placeholder="Entrez votre mot de passe"
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                required 
+              />
+            </div>
+            <button type="submit" className={styles.button}>Se connecter</button>
+          </form>
+          <div className={styles.links}>
+            <a href="/forgot-password" className={styles.link}>Mot de passe oublié ?</a>
+            <a href="/front/add" className={styles.link}>Créer un compte</a>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default Login;
