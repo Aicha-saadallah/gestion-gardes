@@ -12,11 +12,11 @@ export default function Header({ onLanguageChange, onRoleChange }) {
     
       
         if (role === "Médecin") {
-          router.push("/dashboard/medecin");
+          router.push("/front/medecin");
         } else if (role === "chef_service") {
-          router.push("/dashboard/patient");
-        } else if (role === "Administrateur") {
-          router.push("/dashboard/admin");
+          router.push("/front/service");
+        } else if (role === "superviseur") {
+          router.push("/front/superviseur");
         }
       };
 
@@ -46,7 +46,7 @@ export default function Header({ onLanguageChange, onRoleChange }) {
                 </button>
                 <select onChange={handleRoleChange} value={role} style={styles.select}>
                     <option value="Médecin">Médecin</option>
-                    <option value="Administrateur">Administrateur</option>
+                    <option value="superviseur">superviseur</option>
                     <option value="responsable de service">Responsable de service</option>
                 </select>
 

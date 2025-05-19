@@ -1,0 +1,25 @@
+{
+  "login": {
+    "title": "Welcome",
+    "subtitle": "Enter your credentials to login",
+    "labels": {
+      "email": "Email address",
+      "password": "Password"
+    },
+    "placeholders": {
+      "email": "Enter your email",
+      "password": "Enter your password"
+    },
+    "buttons": {
+      "submit": "Login"
+    },
+    "links": {
+      "forgot_password": "Forgot password?",
+      "create_account": "Create account"
+    },
+    "errors": {
+      "invalid_credentials": "Incorrect email or password",
+      "server_error": "An error occurred during login"
+    }
+  }
+}

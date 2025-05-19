@@ -13,35 +13,36 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:3000/api/back/mod/login', {
+      const response = await axios.post('/api/back/mod/login', {
         email,
         password
       });
 
       if (response.data.success) {
-        // Stocker le token ou les infos utilisateur si nécessaire
         localStorage.setItem('token', response.data.token);
-        localStorage.setItem('role', response.data.role);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
 
-        // Rediriger selon le rôle
-        switch(response.data.role) {
-          case 'Admin':
-            router.push('/front/page2');
+        switch(response.data.user.role) {
+          case 'Superviseur':
+            router.push('/front/superviseur');
             break;
+            case 'Administrateur':
+              router.push('/front/superviseur');
+              break;
           case 'Médecin':
             router.push('/front/medecin');
             break;
-          case 'Responsable':
-            router.push('/responsable/dashboard');
+          case 'Chef de service':
+            router.push('/front/service');
             break;
           default:
             router.push('/');
         }
       } else {
-        setError('Email ou mot de passe incorrect');
+        setError(response.data.message || 'Email ou mot de passe incorrect');
       }
     } catch (err) {
-      setError('Une erreur est survenue lors de la connexion');
+      setError(err.response?.data?.message || 'Une erreur est survenue lors de la connexion');
     }
   };
 
@@ -53,7 +54,7 @@ const Login = () => {
         <div className={styles.formContainer}>
           <form onSubmit={handleSubmit}>
             <h2 className={styles.title}>Bienvenue</h2>
-            <p className={styles.subtitle}>Saisissez votre adresse courriel pour vous connecter à votre compte</p>
+            <p className={styles.subtitle}>Saisissez vos identifiants pour vous connecter</p>
             
             {error && <div className={styles.error}>{error}</div>}
             
@@ -82,7 +83,7 @@ const Login = () => {
             <button type="submit" className={styles.button}>Se connecter</button>
           </form>
           <div className={styles.links}>
-            <a href="/forgot-password" className={styles.link}>Mot de passe oublié ?</a>
+            <a href="/" className={styles.link}>Mot de passe oublié ?</a>
             <a href="/front/add" className={styles.link}>Créer un compte</a>
           </div>
         </div>

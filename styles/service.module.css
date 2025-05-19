@@ -1,0 +1,153 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.header {
+  color: #2c3e50;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.subheader {
+  color: #4a5568;
+  text-align: center;
+  margin-bottom: 2rem;
+  font-weight: 500;
+}
+
+.card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f8f9fa;
+  font-weight: 500;
+  padding: 0.75rem 1.25rem;
+}
+
+.alert {
+  margin-bottom: 1.5rem;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+.loading span {
+  margin-top: 1rem;
+}
+
+.requestList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.requestItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.requestItem:hover {
+  background-color: #f8f9fa;
+}
+
+.requestInfo h5 {
+  margin: 0 0 0.25rem 0;
+  color: #212529;
+}
+
+.requestMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  margin: 0;
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+.requestMeta span {
+  display: inline-block;
+}
+
+.requestActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+.emptyIcon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
+  color: #e9ecef;
+}
+
+.emptyIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.debugHint {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #adb5bd;
+}
+
+/* Section de débogage */
+.debugCard {
+  margin-top: 2rem;
+  border-color: #ffeeba;
+}
+
+.debugCard pre {
+  margin: 0;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .requestItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .requestActions {
+    width: 100%;
+  }
+
+  .requestActions button {
+    flex: 1;
+  }
+}

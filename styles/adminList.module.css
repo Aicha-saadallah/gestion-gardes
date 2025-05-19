@@ -1,0 +1,245 @@
+/* adminList.module.css */
+
+.container {
+    padding: 20px;
+    font-family: sans-serif;
+    background-color: #f4f4f4;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .title {
+    color: #333;
+    margin-bottom: 30px;
+    text-align: center;
+    font-size: 2.5em;
+  }
+  
+  .error {
+    color: #d32f2f;
+    background-color: #ffebee;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    border: 1px solid #ef9a9a;
+  }
+  
+  .addButton {
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 20px;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+  }
+  
+  .addButton:hover {
+    background-color: #388e3c;
+  }
+  
+  .loadingContainer {
+    text-align: center;
+    font-size: 1.2em;
+    margin-top: 50px;
+    color: #777;
+  }
+  
+  .listContainer {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 1200px;
+    margin-bottom: 30px;
+  }
+  
+  .listTitle {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.8em;
+  }
+  
+  .emptyList {
+    color: #777;
+    font-style: italic;
+  }
+  
+  .adminTable {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .tableHead {
+    background-color: #f0f0f0;
+  }
+  
+  .tableHeader {
+    padding: 15px;
+    text-align: left;
+    font-weight: bold;
+    color: #555;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .tableBody tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+  
+  .tableRow:hover {
+    background-color: #eee;
+  }
+  
+  .tableCell {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .tableActions {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .editButton {
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.3s ease;
+  }
+  
+  .editButton:hover {
+    background-color: #2f1cec;
+  }
+  
+  .deleteButton {
+    background-color: #ec2700;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.3s ease;
+  }
+  
+  .deleteButton:hover {
+    background-color: #f24444;
+  }
+  
+  .backButton {
+    background-color: #607d8b;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+  }
+  
+  .backButton:hover {
+    background-color: #455a64;
+  }
+  
+  /* Styles pour la modale */
+  .modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .modalContent {
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 600px;
+  }
+  
+  .modalTitle {
+    color: #333;
+    margin-bottom: 25px;
+    font-size: 2em;
+    text-align: center;
+  }
+  
+  .formGroup {
+    margin-bottom: 20px;
+  }
+  
+  .formLabel {
+    display: block;
+    margin-bottom: 8px;
+    color: #555;
+    font-weight: bold;
+  }
+  
+  .formInput {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 1em;
+  }
+  
+  .formInput:focus {
+    outline: none;
+    border-color: #2f1cec;
+    box-shadow: 0 0 5px #2f1cec(33, 150, 243, 0.5);
+  }
+  
+  .formActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    margin-top: 25px;
+  }
+  
+  .submitButton {
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+  }
+  
+  .submitButton:hover {
+    background-color: #388e3c;
+  }
+  
+  .cancelButton {
+    background-color: #f24444;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+  }
+  
+  .cancelButton:hover {
+    background-color: #d32f2f;
+  }

@@ -1,0 +1,236 @@
+/* styles/planning.module.css */
+
+.planningContainer {
+    padding: 2rem;
+  }
+  
+  .header {
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .logoutButton,
+  .medecinsButton {
+    padding: 0.5rem 1rem;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+  
+  .logoutButton {
+    background-color: #dc3545;
+    margin-right: 1rem;
+  }
+  
+  .title {
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+  
+  .filter {
+    margin: 1rem 0;
+    text-align: center;
+  }
+  
+  .filter label {
+    margin-right: 0.5rem;
+    font-size: 1rem;
+  }
+  
+  .filter select {
+    padding: 0.3rem 0.6rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+  }
+  
+  .selectedGarde {
+    margin-top: 2rem;
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+  }
+  
+  .selectedGarde h3 {
+    margin-top: 0;
+  }
+  
+  .notificationContainer {
+    position: relative;
+  }
+  
+  .notificationButton {
+    padding: 0.5rem 1rem;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+  
+  .notificationDropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    min-width: 250px;
+    margin-top: 0.5rem;
+  }
+  
+  .notificationDropdown ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .notificationDropdown li {
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+  }
+  
+  .notificationDropdown li:last-child {
+    border-bottom: none;
+  }
+  
+  .acceptButton,
+  .rejectButton {
+    padding: 0.3rem 0.6rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    margin-left: 0.5rem;
+  }
+  
+  .acceptButton {
+    background-color: green;
+    color: white;
+  }
+  
+  .rejectButton {
+    background-color: red;
+    color: white;
+  }
+  
+  .notificationDropdown p {
+    padding: 0.7rem 1rem;
+    margin: 0;
+    font-size: 0.9rem;
+    text-align: center;
+  }
+  /* planning.module.css */
+.planningContainer {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.actionButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.title {
+  text-align: center;
+  margin: 20px 0;
+  color: #2c3e50;
+}
+
+.filter {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.filter select {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.logoutButton {
+  padding: 8px 16px;
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.logoutButton:hover {
+  background-color: #c0392b;
+}
+
+.medecinsButton {
+  padding: 8px 16px;
+  background-color: #2259ec;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.medecinsButton:hover {
+  background-color: #2259ec;
+}
+
+.adminButton {
+  padding: 8px 16px;
+  background-color: #2259ec;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.adminButton:hover {
+  background-color: #2259ec;
+}
+
+.selectedGarde {
+  margin-top: 20px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.selectedGarde select {
+  padding: 8px;
+  width: 100%;
+  max-width: 300px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  margin-top: 10px;
+}
+
+.fc {
+  margin-top: 20px;
+}
+
+.fc-event {
+  cursor: pointer;
+}

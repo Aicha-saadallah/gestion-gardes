@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useRouter } from "next/router";
 
@@ -24,7 +24,7 @@ const buttonStyle = {
 
 const primaryButtonStyle = {
   ...buttonStyle,
-  backgroundColor: "#28a745", // Vert succès
+  backgroundColor: "#3252e3", // Couleur bleue d'origine pour "Enregistrer les modifications"
   color: "white",
 };
 
@@ -111,35 +111,61 @@ const servicesList = [
   "Laboratoire d'immunologie",
 ];
 
-export default function AjouterMedecin() {
+export default function ModifierMedecin() {
   const [nom, setNom] = useState("");
   const [prenom, setPrenom] = useState("");
   const [email, setEmail] = useState("");
-  const [service, setService] = useState(servicesList[0] || "");
-  const [role, setRole] = useState("Médecin");
-  const [password, setPassword] = useState(""); // Ajout de l'état pour le mot de passe
+  const [service, setService] = useState("");
+  const [role, setRole] = useState("");
   const router = useRouter();
+  const { id: medecinId } = router.query;
+
+  useEffect(() => {
+    if (medecinId) {
+      fetchMedecin(medecinId);
+    }
+  }, [medecinId]);
+
+  const fetchMedecin = async (id) => {
+    try {
+      const response = await axios.get(`/api/back/mod/article?id=${id}`);
+      const medecinData = response.data?.members?.[0];
+      if (medecinData) {
+        setNom(medecinData.nom);
+        setPrenom(medecinData.prenom);
+        setEmail(medecinData.email);
+        setService(medecinData.service || servicesList[0] || "");
+        setRole(medecinData.role);
+      } else {
+        alert("Médecin non trouvé.");
+        router.push("/front/MedecinsList");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la récupération du médecin:", error);
+      alert("Erreur lors de la récupération des informations du médecin.");
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const newMedecin = { nom, prenom, email, service, role, password }; // Inclure le mot de passe
-      const response = await axios.post("/api/back/mod/article", newMedecin);
+      const updatedMedecin = { nom, prenom, email, service, role };
+      const response = await axios.put(`/api/back/mod/article?id=${medecinId}`, updatedMedecin);
       if (response.status === 200) {
-        alert("Médecin ajouté avec succès!");
+        alert("Informations du médecin mises à jour avec succès!");
         router.push("/front/MedecinsList");
       } else {
-        alert("Erreur lors de l'ajout du médecin.");
+        alert("Erreur lors de la mise à jour des informations du médecin.");
       }
     } catch (error) {
-      console.error("Erreur lors de l'ajout du médecin:", error);
-      alert("Une erreur s'est produite lors de l'ajout.");
+      console.error("Erreur lors de la mise à jour du médecin:", error);
+      alert("Une erreur s'est produite lors de la mise à jour.");
     }
   };
 
   return (
     <div style={formContainerStyle}>
-      <h2 style={h2Style}>Ajouter un Nouveau Médecin</h2>
+      <h2 style={h2Style}>Modifier le Médecin</h2>
       <form onSubmit={handleSubmit}>
         <div>
           <input
@@ -172,16 +198,6 @@ export default function AjouterMedecin() {
           />
         </div>
         <div>
-          <input // Ajout du champ mot de passe
-            type="password"
-            placeholder="Mot de passe"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={inputStyle}
-            required // Vous pouvez le rendre facultatif si vous le souhaitez
-          />
-        </div>
-        <div>
           <select
             value={service}
             onChange={(e) => setService(e.target.value)}
@@ -206,7 +222,7 @@ export default function AjouterMedecin() {
           </select>
         </div>
         <button type="submit" style={primaryButtonStyle}>
-          Ajouter
+          Enregistrer les modifications
         </button>
         <button
           type="button"

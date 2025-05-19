@@ -4,18 +4,21 @@ import ModelGarde from "@/pages/api/back/mod/gardeSchema";
 
 export default async function handler(req, res) {
   try {
-    console.log("✅ Requête reçue dans l'API");
+    console.log("✅ Requête reçue dans l'API d'inscription");
 
     await dbConnect();
     console.log("......connexion avec succès");
 
     if (req.method === "POST") {
-      const { nom, prenom, role, specialite, email, password } = req.body;
+      const { nom, prenom, role, service, email, password } = req.body;
 
-      console.log("📦 Données reçues :", req.body);
+      console.log("📦 Données reçues :", { 
+        ...req.body, 
+        password: password ? '*****' : null 
+      });
 
-      // Vérification des champs obligatoires
-      if (!nom || !prenom || !role || !email || !password || (role === "Médecin" && !specialite)) {
+      // Validation des champs
+      if (!nom || !prenom || !role || !email || !password || (role === "Médecin" && !service)) {
         console.log("⚠️ Champs manquants !");
         return res.status(400).json({
           success: false,
@@ -23,7 +26,7 @@ export default async function handler(req, res) {
         });
       }
 
-      // Vérifie si l'email existe déjà
+      // Vérification email
       const existing = await tableArticle.findOne({ email });
       if (existing) {
         console.log("⚠️ Email déjà utilisé :", email);
@@ -33,21 +36,26 @@ export default async function handler(req, res) {
         });
       }
 
-      // Création de l'utilisateur
+      // Création avec statut approprié
+      const status = role === "Médecin" ? "pending" : "approved";
       const newUser = await tableArticle.create({
         nom,
         prenom,
         role,
-        specialite: role === "Médecin" ? specialite : "",
+        service: ["Médecin", "Chef de service"].includes(role) ? service : "",
         email,
         password,
+        status
       });
 
-      console.log("✅ Utilisateur créé :", newUser);
+      console.log("✅ Utilisateur créé :", {
+        ...newUser._doc,
+        password: '*****'
+      });
 
-      // Si Médecin, ajouter une garde automatiquement
-      if (role === "Médecin") {
-        const gardes = await ModelGarde.find({ specialite }).sort({ date: -1 });
+      // Si médecin approuvé immédiatement (pour test)
+      if (role === "Médecin" && status === "approved") {
+        const gardes = await ModelGarde.find({ service }).sort({ date: -1 });
         const derniereDate = gardes.length > 0 ? gardes[0].date : new Date();
         const prochaineDate = new Date(derniereDate);
         prochaineDate.setDate(prochaineDate.getDate() + 1);
@@ -55,7 +63,7 @@ export default async function handler(req, res) {
         await ModelGarde.create({
           nom,
           prenom,
-          specialite,
+          service,
           date: prochaineDate,
         });
 
@@ -64,12 +72,13 @@ export default async function handler(req, res) {
 
       return res.status(201).json({
         success: true,
-        message: "Utilisateur inscrit avec succès",
+        message: role === "Médecin" 
+          ? "Demande d'inscription envoyée au chef de service pour approbation" 
+          : "Utilisateur inscrit avec succès",
         user: newUser,
       });
 
     } else {
-      // Si la méthode n'est pas POST
       return res.status(405).json({
         success: false,
         message: "Méthode non autorisée",
@@ -79,7 +88,6 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error("❌ Erreur serveur :", err);
 
-    // Gérer le cas d'un email déjà existant (erreur MongoDB de duplicata)
     if (err.code === 11000 && err.keyPattern?.email) {
       return res.status(400).json({
         success: false,
