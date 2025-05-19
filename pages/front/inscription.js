@@ -1,78 +1,48 @@
 // pages/front/inscription.js
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
 import style from "@/styles/inscription.module.css";
 import Header from "@/components/head";
 import { Modal, Button } from "react-bootstrap";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import allServices from '@/data/services';
 
-export default function Inscription() {
+export default function InscriptionAdmin() {
   const [nom, setNom] = useState("");
   const [prenom, setPrenom] = useState("");
   const [role, setRole] = useState("");
-  const [serviceInput, setServiceInput] = useState("");
-  const [filteredServices, setFilteredServices] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-  const [servicesAvecChef, setServicesAvecChef] = useState([]);
 
   const router = useRouter();
 
-  useEffect(() => {
-    axios.get('/api/back/mod/chefs-par-service')
-      .then(response => {
-        setServicesAvecChef(response.data.map(item => item.service));
-      })
-      .catch(error => {
-        console.error("Erreur lors de la récupération des chefs par service :", error);
-      });
-  }, []);
-
-  useEffect(() => {
-    if (serviceInput.length > 1) {
-      const filtered = allServices.filter(service =>
-        service.toLowerCase().includes(serviceInput.toLowerCase())
-      );
-      setFilteredServices(filtered);
-      setShowSuggestions(true);
-    } else {
-      setFilteredServices([]);
-      setShowSuggestions(false);
-    }
-  }, [serviceInput]);
-
-  const handleServiceSelect = (service) => {
-    setServiceInput(service);
-    setShowSuggestions(false);
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
   };
 
-  const hasChef = (service) => {
-    return servicesAvecChef.includes(service);
+  const validatePassword = (password) => {
+    return password.length >= 6;
   };
 
   async function ajouterInfo() {
     if (isSubmitting) return;
 
-    if (!nom || !prenom || !role || !email || !password ||
-      ((role === "Médecin" || role === "Chef de service") && !serviceInput)) {
+    if (!nom || !prenom || !role || !email || !password) {
       setMessage({ type: "error", text: "❌ Tous les champs obligatoires doivent être remplis" });
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!validateEmail(email)) {
       setMessage({ type: "error", text: "❌ Veuillez entrer une adresse email valide" });
       return;
     }
 
-    if (password.length < 6) {
+    if (!validatePassword(password)) {
       setMessage({ type: "error", text: "❌ Le mot de passe doit contenir au moins 6 caractères" });
       return;
     }
@@ -81,28 +51,24 @@ export default function Inscription() {
     setMessage(null);
 
     try {
-      const response = await axios.post("/api/back", {
+      const response = await axios.post("/api/back/mod/inscription-admin", {
         nom,
         prenom,
         role,
-        service: role === "Médecin" || role === "Chef de service" ? serviceInput : "",
         email,
         password,
       });
 
       if (response.data.success) {
-        if (role === "Médecin") {
-          setSuccessMessage("Votre demande d'inscription a été envoyée pour approbation.");
-          setShowSuccessModal(true);
-          localStorage.setItem('tempUser', JSON.stringify({ email, role, status: 'pending' }));
-        } else if (role === "Chef de service") {
-          setSuccessMessage("Inscription réussie ! Redirection en cours...");
-          setShowSuccessModal(true);
-          localStorage.setItem('token', 'chef_de_service_token'); // Simuler un token
-          setTimeout(() => {
-            router.push("/front/service");
-          }, 2000);
-        }
+        setSuccessMessage(`${response.data.data.role} inscrit avec succès.`);
+        setShowSuccessModal(true);
+        setTimeout(() => {
+          if (role === "admin") {
+            router.push("/front/admin");
+          } else if (role === "Superviseur") {
+            router.push("/front/superviseur");
+          }
+        }, 2000);
       } else {
         setMessage({ type: "error", text: `❌ ${response.data.message}` });
       }
@@ -117,10 +83,10 @@ export default function Inscription() {
 
   const handleCloseSuccessModal = () => {
     setShowSuccessModal(false);
-    if (role === "Médecin") {
-      router.push("/front/waiting-approval");
-    } else if (role === "Chef de service") {
-      router.push("/front/service");
+    if (role === "admin") {
+      router.push("/front/admin");
+    } else if (role === "Superviseur") {
+      router.push("/front/superviseur");
     }
   };
 
@@ -129,7 +95,7 @@ export default function Inscription() {
       <Header />
       <div className={style.container}>
         <div className={style.formContainer}>
-          <h2 className={style.title}>Inscription</h2>
+          <h2 className={style.title}>Inscription Administrateur/Superviseur</h2>
 
           {message && (
             <div className={`${style.message} ${message.type === "success" ? style.success : style.error}`}>
@@ -148,46 +114,13 @@ export default function Inscription() {
             </div>
             <div className={style.inputGroup}>
               <label>Rôle :</label>
-              <select value={role} onChange={(e) => { setRole(e.target.value); setServiceInput(""); }} required className={style.select}>
+              <select value={role} onChange={(e) => setRole(e.target.value)} required className={style.select}>
                 <option value="">Sélectionnez un rôle</option>
-                <option value="Médecin">Médecin</option>
-                <option value="Chef de service">Chef de service</option>
+                <option value="Administrateur">Administrateur</option>
+                <option value="Superviseur">Superviseur</option>
+                {/* Ajoutez d'autres rôles de gestion si nécessaire */}
               </select>
             </div>
-
-            {(role === "Médecin" || role === "Chef de service") && (
-              <div className={style.inputGroup}>
-                <label>Service :</label>
-                <div className={style.serviceAutocomplete}>
-                  <input
-                    type="text"
-                    value={serviceInput}
-                    onChange={(e) => setServiceInput(e.target.value)}
-                    onFocus={() => serviceInput.length > 1 && setShowSuggestions(true)}
-                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                    placeholder="Rechercher ou saisir un service"
-                    required
-                    className={style.input}
-                  />
-                  {showSuggestions && filteredServices.length > 0 && (
-                    <ul className={style.suggestionsList}>
-                      {filteredServices.map((service, index) => (
-                        <li
-                          key={index}
-                          onClick={() => handleServiceSelect(service)}
-                          className={`${style.suggestionItem} ${hasChef(service) ? style.serviceAvecChef : ''}`}
-                          title={hasChef(service) ? "Ce service a déjà un chef" : ""}
-                        >
-                          {service}
-                          {hasChef(service) && <span style={{ marginLeft: '5px', color: 'red' }}>(Occupé)</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-            )}
-
             <div className={style.inputGroup}>
               <label>Email :</label>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={style.input} />
@@ -201,7 +134,7 @@ export default function Inscription() {
             <button
               onClick={ajouterInfo}
               className={style.submitButton}
-              disabled={isSubmitting || (role === "Chef de service" && hasChef(serviceInput))}
+              disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <>
@@ -230,7 +163,7 @@ export default function Inscription() {
         </Modal.Body>
         <Modal.Footer>
           <Button variant="primary" onClick={handleCloseSuccessModal}>
-            {role === "Médecin" ? "Compris" : "Continuer"}
+            Continuer
           </Button>
         </Modal.Footer>
       </Modal>

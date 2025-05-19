@@ -2,12 +2,13 @@
 import dbConnect from "@/pages/api/back/model/connectDB";
 import ModelEchange from "@/pages/api/back/mod/exchangeSchema";
 import ModelGarde from "@/pages/api/back/mod/gardeSchema";
+import ModelArticle from "@/pages/api/back/mod/articleSchemaDB"; // Importez ModelArticle
 import mongoose from 'mongoose';
 
 export default async function handler(req, res) {
     await dbConnect();
 
-    if (req.method === "POST") {
+    if (req.method === "POST" && !req.query.id) {
         const { gardeIds, fromDoctor, toDoctor, message, status } = req.body;
 
         try {
@@ -42,7 +43,7 @@ export default async function handler(req, res) {
                 return res.status(400).json({ message: 'ID de demande d\'échange invalide' });
             }
 
-            const exchange = await ModelEchange.findById(id);
+            const exchange = await ModelEchange.findById(id).populate('gardeId fromDoctor toDoctor');
             if (!exchange) {
                 return res.status(404).json({ message: 'Demande d\'échange non trouvée.' });
             }
@@ -58,13 +59,66 @@ export default async function handler(req, res) {
             );
 
             if (action === 'accept') {
-                const fullExchange = await ModelEchange.findById(id).populate('gardeId');
-                if (fullExchange?.gardeId) {
-                    const garde = fullExchange.gardeId;
-                    const toDoctorId = fullExchange.toDoctor;
+                if (exchange.gardeId) {
+                    const gardeIdToGive = exchange.gardeId._id;
+                    const fromDoctorId = exchange.fromDoctor._id;
+                    const toDoctorId = exchange.toDoctor._id;
+                    const gardeDate = exchange.gardeId.date; // Assuming gardeId has a 'date' field
 
-                    await ModelGarde.findByIdAndUpdate(garde._id, { doctor: toDoctorId });
-                    console.log(`Garde ${garde._id} attribuée au médecin ${toDoctorId}`);
+                    // 1. Find the garde of the accepting doctor on the same date
+                    const gardeToTake = await ModelGarde.findOne({ doctor: toDoctorId, date: gardeDate });
+
+                    if (gardeToTake) {
+                        const gardeIdToTake = gardeToTake._id;
+
+                        // 2. Fetch the information of the doctors involved
+                        const fromDoctor = await ModelArticle.findById(fromDoctorId);
+                        const toDoctor = await ModelArticle.findById(toDoctorId);
+
+                        if (!fromDoctor || !toDoctor) {
+                            console.error("Erreur: Impossible de récupérer les informations des médecins.");
+                            return res.status(500).json({ message: "Erreur lors de la récupération des informations des médecins." });
+                        }
+
+                        // 3. Update the garde of the requesting doctor to be assigned to the accepting doctor
+                        const updateGiveResult = await ModelGarde.findByIdAndUpdate(
+                            gardeIdToGive,
+                            { doctor: toDoctorId, nom: toDoctor.nom, prenom: toDoctor.prenom },
+                            { new: true }
+                        );
+
+                        if (!updateGiveResult) {
+                            console.error(`Erreur: Impossible d'attribuer la garde ${gardeIdToGive} au médecin ${toDoctorId}`);
+                            return res.status(500).json({ message: "Erreur lors de l'attribution de la garde au médecin acceptant." });
+                        }
+                        console.log(`Garde ${gardeIdToGive} attribuée au médecin ${toDoctorId} (${toDoctor.prenom} ${toDoctor.nom})`);
+
+                        // 4. Update the garde of the accepting doctor to be assigned to the requesting doctor
+                        const updateTakeResult = await ModelGarde.findByIdAndUpdate(
+                            gardeIdToTake,
+                            { doctor: fromDoctorId, nom: fromDoctor.nom, prenom: fromDoctor.prenom },
+                            { new: true }
+                        );
+
+                        if (!updateTakeResult) {
+                            console.error(`Erreur: Impossible d'attribuer la garde ${gardeIdToTake} au médecin ${fromDoctorId}`);
+                            return res.status(500).json({ message: "Erreur lors de l'attribution de la garde au médecin demandeur." });
+                        }
+                        console.log(`Garde ${gardeIdToTake} attribuée au médecin ${fromDoctorId} (${fromDoctor.prenom} ${fromDoctor.nom})`);
+
+                        // 5. Update other pending exchange requests for the involved gardes to 'annulé'
+                        await ModelEchange.updateMany(
+                            { gardeId: { $in: [gardeIdToGive, gardeIdToTake] }, _id: { $ne: id }, status: 'en attente' },
+                            { status: 'annulé' }
+                        );
+                        console.log(`Autres demandes d'échange impliquant les gardes ${gardeIdToGive} et ${gardeIdToTake} annulées.`);
+
+                    } else {
+                        console.warn(`Avertissement: Aucune garde trouvée pour le médecin acceptant (${toDoctorId}) à la date du ${gardeDate}. L'échange n'a pas pu être complété.`);
+                        return res.status(400).json({ message: "Aucune garde correspondante trouvée pour le médecin acceptant à cette date." });
+                    }
+                } else {
+                    console.warn(`Avertissement: gardeId non trouvé pour la demande d'échange ${id}.`);
                 }
             }
 
@@ -82,7 +136,7 @@ export default async function handler(req, res) {
             if (fromDoctor) {
                 exchangesSent = await ModelEchange.find({ fromDoctor })
                     .populate('gardeId', 'date')
-                    .populate('toDoctor', 'prenom nom')
+                    .populate('toDoctor', 'nom prenom')
                     .sort({ createdAt: -1 });
             }
 
@@ -94,7 +148,7 @@ export default async function handler(req, res) {
                 const doctorId = new mongoose.Types.ObjectId(toDoctor);
                 exchangesReceived = await ModelEchange.find({ toDoctor: doctorId })
                     .populate('gardeId', 'date')
-                    .populate('fromDoctor', 'prenom nom')
+                    .populate('fromDoctor', 'nom prenom')
                     .sort({ createdAt: -1 });
             }
 

@@ -7,10 +7,23 @@ import ModelGarde from "@/pages/api/back/mod/gardeSchema";
 dbConnect();
 const router = createRouter();
 
-// ➕ POST : inscription utilisateur (tous rôles) + création automatique de garde pour médecin
+// ➕ POST : inscription utilisateur (médecin et chef de service) + création automatique de garde pour médecin
 router.post(async (req, res) => {
   try {
     const data = req.body;
+
+    // Vérification du rôle pour limiter à Médecin et Chef de service (sécurité supplémentaire côté serveur)
+    if (data.role !== "Médecin" && data.role !== "Chef de service") {
+      return res.status(400).json({ success: false, message: "Seuls les médecins et chefs de service peuvent s'inscrire via ce formulaire." });
+    }
+
+    // Vérification si un chef de service existe déjà pour ce service
+    if (data.role === "Chef de service") {
+      const chefExistant = await ModelArticle.findOne({ role: "Chef de service", service: data.service });
+      if (chefExistant) {
+        return res.status(409).json({ success: false, message: `S'il vous plaît, un chef de service existe déjà pour le service "${data.service}".` });
+      }
+    }
 
     const nouveauArticle = new ModelArticle({
       nom: data.nom,
@@ -48,10 +61,10 @@ router.post(async (req, res) => {
         garde: nouvelleGarde
       });
     } else {
-      console.log("Utilisateur ajouté :", nouveauArticle);
+      console.log("Chef de service ajouté :", nouveauArticle);
       res.status(200).json({
         success: true,
-        message: "Utilisateur inscrit avec succès",
+        message: "Chef de service inscrit avec succès",
         data: nouveauArticle,
       });
     }
