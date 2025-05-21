@@ -15,8 +15,8 @@ export default function ServicePlanning() {
   const [showModal, setShowModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [nom, setNom] = useState('');
-  const [prenom, setPrenom] = useState('');
+  const [medecins, setMedecins] = useState([]);
+  const [selectedMedecin, setSelectedMedecin] = useState('');
   const [pendingRequests, setPendingRequests] = useState([]);
   const [showRequests, setShowRequests] = useState(false);
   const [alert, setAlert] = useState(null);
@@ -53,8 +53,9 @@ export default function ServicePlanning() {
     try {
       setIsLoading(true);
       await Promise.all([
-        fetchGardes().catch(err => { console.error("Erreur fetchGardes:", err); throw err; }),
-        fetchPendingRequests().catch(err => { console.error("Erreur fetchPendingRequests:", err); throw err; })
+        fetchGardes(),
+        fetchPendingRequests(),
+        fetchMedecins()
       ]);
     } catch (err) {
       console.error("Erreur fetchData:", err);
@@ -74,9 +75,43 @@ export default function ServicePlanning() {
         params: { service: userService },
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.data.success) setEvents(res.data.gardes);
+      if (res.data.success) {
+        setEvents(res.data.gardes.map(g => ({
+          ...g,
+          title: `${g.prenom} ${g.nom}`,
+          start: g.date,
+          end: g.date,
+          allDay: true
+        })));
+      }
     } catch (err) {
       console.error(err);
+      throw err;
+    }
+  };
+
+  const fetchMedecins = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const user = jwt.decode(token);
+      
+      const response = await axios.get('/api/back/mod/serviceGarde', {
+        params: { 
+          service: userService,
+          currentUserId: user.id 
+        },
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.data.success) {
+        setMedecins(response.data.data.members);
+      }
+    } catch (err) {
+      console.error("Erreur fetchMedecins:", err);
+      setAlert({
+        variant: 'danger',
+        message: "Erreur lors du chargement des médecins"
+      });
     }
   };
 
@@ -106,79 +141,71 @@ export default function ServicePlanning() {
   const handleDateClick = (arg) => {
     setSelectedDate(arg.dateStr);
     setSelectedEvent(null);
-    setNom('');
-    setPrenom('');
+    setSelectedMedecin('');
     setShowModal(true);
   };
 
   const handleEventClick = (arg) => {
     setSelectedDate(arg.event.startStr);
     setSelectedEvent(arg.event);
-    setNom(arg.event.extendedProps.nom);
-    setPrenom(arg.event.extendedProps.prenom);
+    setSelectedMedecin(arg.event.extendedProps.doctor);
     setShowModal(true);
   };
 
   const handleSave = async () => {
     try {
       const token = localStorage.getItem('token');
-      const decoded = jwt.decode(token);
+      
+      if (!selectedMedecin) {
+        throw new Error("Veuillez sélectionner un médecin");
+      }
+
+      const medecin = medecins.find(m => m.id === selectedMedecin);
       
       if (selectedEvent) {
-        await axios.put('/api/back/index1', {
+        await axios.put('/api/back/mod/garde', {
           id: selectedEvent.extendedProps._id,
-          nom, 
-          prenom, 
           date: selectedDate,
+          doctorId: selectedMedecin,
+          nom: medecin.nom,
+          prenom: medecin.prenom
         }, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setAlert({ variant: 'success', message: 'Garde modifiée.' });
+        setAlert({ variant: 'success', message: 'Garde modifiée avec succès' });
       } else {
-        // Vous devez obtenir l'ID du médecin à assigner à la garde
-        // Par exemple, en faisant une requête pour trouver un médecin avec ce nom/prénom
-        const doctorsResponse = await axios.get('/api/back', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        
-        const doctor = doctorsResponse.data.find(d => 
-          d.nom === nom && d.prenom === prenom && d.service === userService
-        );
-  
-        if (!doctor) {
-          throw new Error("Médecin non trouvé dans ce service");
-        }
-  
-        await axios.post('/api/back/index1', {
-          nom, 
-          prenom, 
-          date: selectedDate, 
+        await axios.post('/api/back/mod/garde', {
+          date: selectedDate,
           service: userService,
-          doctorId: doctor._id // Ajout de l'ID du médecin
+          doctorId: selectedMedecin,
+          nom: medecin.nom,
+          prenom: medecin.prenom
         }, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setAlert({ variant: 'success', message: 'Garde ajoutée.' });
+        setAlert({ variant: 'success', message: 'Garde ajoutée avec succès' });
       }
+      
       setShowModal(false);
-      fetchGardes();
+      await fetchGardes();
     } catch (err) {
       setAlert({ 
         variant: 'danger', 
-        message: err.response?.data?.message || "Erreur lors de l'enregistrement" 
+        message: err.response?.data?.message || err.message || "Erreur lors de l'enregistrement" 
       });
     }
   };
-  
+
   const handleDelete = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete('/api/back/index1', {
+      await axios.delete('/api/back/mod/garde', {
         params: { id: selectedEvent.extendedProps._id },
         headers: { Authorization: `Bearer ${token}` },
       });
+      setAlert({ variant: 'success', message: 'Garde supprimée avec succès' });
       setShowModal(false);
-      fetchGardes();
+      await fetchGardes();
     } catch (err) {
       setAlert({ variant: 'danger', message: "Erreur lors de la suppression" });
     }
@@ -293,11 +320,7 @@ export default function ServicePlanning() {
                 plugins={[dayGridPlugin, interactionPlugin]}
                 initialView="dayGridMonth"
                 locale="fr"
-                events={events.map(e => ({
-                  title: `${e.prenom} ${e.nom}`,
-                  date: e.date,
-                  extendedProps: e
-                }))}
+                events={events}
                 dateClick={handleDateClick}
                 eventClick={handleEventClick}
                 headerToolbar={{
@@ -314,23 +337,36 @@ export default function ServicePlanning() {
               </Modal.Header>
               <Modal.Body>
                 <Form>
-                  <Form.Group>
+                  <Form.Group className="mb-3">
                     <Form.Label>Date</Form.Label>
-                    <Form.Control type="text" value={selectedDate} disabled />
+                    <Form.Control 
+                      type="text" 
+                      value={selectedDate} 
+                      disabled 
+                    />
                   </Form.Group>
-                  <Form.Group>
-                    <Form.Label>Prénom</Form.Label>
-                    <Form.Control value={prenom} onChange={(e) => setPrenom(e.target.value)} />
-                  </Form.Group>
-                  <Form.Group>
-                    <Form.Label>Nom</Form.Label>
-                    <Form.Control value={nom} onChange={(e) => setNom(e.target.value)} />
+                  <Form.Group className="mb-3">
+                    <Form.Label>Médecin</Form.Label>
+                    <Form.Select
+                      value={selectedMedecin}
+                      onChange={(e) => setSelectedMedecin(e.target.value)}
+                      required
+                    >
+                      <option value="">Sélectionner un médecin</option>
+                      {medecins.map(medecin => (
+                        <option key={medecin.id} value={medecin.id}>
+                          {medecin.prenom} {medecin.nom} ({medecin.role})
+                        </option>
+                      ))}
+                    </Form.Select>
                   </Form.Group>
                 </Form>
               </Modal.Body>
               <Modal.Footer>
                 {selectedEvent && (
-                  <Button variant="danger" onClick={handleDelete}>Supprimer</Button>
+                  <Button variant="danger" onClick={handleDelete}>
+                    Supprimer
+                  </Button>
                 )}
                 <Button variant="primary" onClick={handleSave}>
                   {selectedEvent ? 'Modifier' : 'Ajouter'}

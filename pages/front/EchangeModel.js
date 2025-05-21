@@ -1,4 +1,3 @@
-// pages/front/EchangeModel.js
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useRouter } from "next/router";
@@ -9,6 +8,7 @@ import Link from 'next/link';
 
 export default function EchangeModel() {
     const [sentExchanges, setSentExchanges] = useState([]);
+    // CORRECTION ICI: setReceivedExchanges était mal orthographié
     const [receivedExchanges, setReceivedExchanges] = useState([]);
     const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -29,12 +29,14 @@ export default function EchangeModel() {
         if (user) {
             setUserData(user);
         } else {
+            // Redirige vers la page de connexion si les données utilisateur ne sont pas trouvées
             router.push("/front/login");
         }
     }, [router]);
 
     useEffect(() => {
         async function fetchExchanges() {
+            // S'assure que les données utilisateur sont chargées avant de tenter de récupérer les échanges
             if (!userData) {
                 console.log("userData est null, la récupération des échanges est ignorée.");
                 return;
@@ -43,29 +45,35 @@ export default function EchangeModel() {
             setLoading(true);
             setError(null);
             try {
+                // Utilise _id en premier, puis id comme solution de repli pour l'ID de l'utilisateur
                 const myId = userData._id || userData.id;
                 console.log("Récupération des échanges pour l'ID utilisateur:", myId);
-                const sentRes = await axios.get(`/api/back/mod/exchange?fromDoctor=${myId}`);
-                setSentExchanges(sentRes.data?.exchangesSent || []);
 
-                const receivedRes = await axios.get(`/api/back/mod/exchange?toDoctor=${myId}`);
-                setReceivedExchanges(receivedRes.data?.exchangesReceived || []);
-                if (receivedRes.data?.exchangesReceived?.length > 0) {
-                    console.log("Structure du premier échange reçu:", receivedRes.data.exchangesReceived[0]);
+                // Récupère les échanges en utilisant le paramètre de requête 'userId'
+                const response = await axios.get(`/api/back/mod/exchange?userId=${myId}`);
+
+                // Définit les données récupérées dans les variables d'état
+                setSentExchanges(response.data?.exchangesSent || []);
+                setReceivedExchanges(response.data?.exchangesReceived || []);
+
+                if (response.data?.exchangesReceived?.length > 0) {
+                    console.log("Structure du premier échange reçu:", response.data.exchangesReceived[0]);
                 }
             } catch (err) {
-                console.error("Erreur lors du chargement des échanges:", err);
-                setError("Erreur lors du chargement des demandes d'échange.");
+                console.error("Erreur lors du chargement des échanges:", err.response?.data || err.message);
+                setError(err.response?.data?.message || "Erreur lors du chargement des demandes d'échange.");
             } finally {
                 setLoading(false);
             }
         }
 
+        // Ne récupère les échanges que si userData est disponible
         if (userData) {
             fetchExchanges();
         }
-    }, [userData]);
+    }, [userData]); // Réexécute l'effet lorsque userData change
 
+    // Fonction d'aide pour formater les dates
     const formatDate = (dateStr) => {
         const date = new Date(dateStr);
         if (isNaN(date.getTime())) return "Date invalide";
@@ -77,6 +85,7 @@ export default function EchangeModel() {
         });
     };
 
+    // Gestionnaires pour accepter/rejeter un échange, ouvrant le modal de confirmation
     const handleAccept = (exchangeId) => {
         console.log("handleAccept appelé avec l'ID:", exchangeId);
         setExchangeIdToHandle(exchangeId);
@@ -91,12 +100,14 @@ export default function EchangeModel() {
         setShowConfirmationModal(true);
     };
 
+    // Confirme et envoie l'action d'acceptation/rejet au backend
     const confirmAction = async () => {
-        setShowConfirmationModal(false);
+        setShowConfirmationModal(false); // Ferme le modal immédiatement
         console.log("confirmAction appelé avec exchangeIdToHandle:", exchangeIdToHandle, "et actionType:", actionType);
-        if (!exchangeIdToHandle || !actionType) {
-            console.error("Erreur: exchangeIdToHandle ou actionType est null.");
-            setError("Erreur lors de la confirmation de l'action.");
+
+        if (!exchangeIdToHandle || !actionType || !userData) {
+            console.error("Erreur: exchangeId, actionType ou userData manquant.");
+            setError("Erreur lors de la confirmation de l'action. Veuillez réessayer.");
             return;
         }
 
@@ -105,29 +116,46 @@ export default function EchangeModel() {
         setSuccess(null);
 
         try {
+            // Envoie l'action et l'ID de l'utilisateur dans le corps de la requête pour traitement
             const response = await axios.post(
-                `/api/back/mod/exchange?id=${exchangeIdToHandle}&action=${actionType}`
+                `/api/back/mod/exchange?id=${exchangeIdToHandle}`, // ID d'échange dans la requête pour ciblage
+                { action: actionType, userId: userData._id || userData.id } // Action et ID de l'utilisateur actuel dans le corps
             );
 
             if (response.data?.success) {
                 setSuccess(`Demande d'échange ${actionType === 'accept' ? 'acceptée' : 'refusée'} avec succès.`);
-
+                // Re-récupère les échanges pour mettre à jour l'interface utilisateur immédiatement après une action réussie
                 const myId = userData._id || userData.id;
-                const sentRes = await axios.get(`/api/back/mod/exchange?fromDoctor=${myId}`);
-                setSentExchanges(sentRes.data?.exchangesSent || []);
-
-                const receivedRes = await axios.get(`/api/back/mod/exchange?toDoctor=${myId}`);
-                setReceivedExchanges(receivedRes.data?.exchangesReceived || []);
+                const updatedResponse = await axios.get(`/api/back/mod/exchange?userId=${myId}`);
+                setSentExchanges(updatedResponse.data?.exchangesSent || []);
+                setReceivedExchanges(updatedResponse.data?.exchangesReceived || []);
             } else {
                 setError(response.data?.message || `Erreur lors de l'${actionType === 'accept' ? 'acceptation' : 'refus'}.`);
             }
         } catch (err) {
-            console.error("Erreur lors de la confirmation de l'échange:", err);
-            setError(`Erreur lors de l'${actionType === 'accept' ? 'acceptation' : 'refus'}.`);
+            console.error("Erreur lors de la confirmation de l'échange:", err.response?.data || err.message);
+            setError(err.response?.data?.message || `Erreur lors de l'${actionType === 'accept' ? 'acceptation' : 'refus'}.`);
         } finally {
             setLoading(false);
+            // Efface le message de succès après quelques secondes
             setTimeout(() => setSuccess(null), 3000);
         }
+    };
+
+    // Aide pour l'affichage des détails des gardes dans les cellules du tableau
+    const renderGardeDetails = (gardes) => {
+        if (!Array.isArray(gardes) || gardes.length === 0) {
+            return 'N/A';
+        }
+        return (
+            <ul>
+                {gardes.map(garde => (
+                    <li key={garde._id}>
+                        {formatDate(garde.date)} - {garde.service}
+                    </li>
+                ))}
+            </ul>
+        );
     };
 
     return (
@@ -146,6 +174,9 @@ export default function EchangeModel() {
                 <Link href="/front/medecin" className={styles.backButton}>
                     Retour au Planning
                 </Link>
+                <Link href="/front/echange" className={styles.backButton}>
+                    Proposer un échange
+                </Link>
             </div>
 
             {loading ? (
@@ -160,11 +191,12 @@ export default function EchangeModel() {
                         {sentExchanges.length === 0 ? (
                             <p>Aucune demande d'échange envoyée.</p>
                         ) : (
-                            <Table striped bordered hover>
+                            <Table striped bordered hover responsive>
                                 <thead>
                                     <tr>
-                                        <th>Date(s)</th>
-                                        <th>Destinataire</th>
+                                        <th>Gardes à donner (Mes gardes)</th>
+                                        <th>Gardes à obtenir (Autres gardes)</th>
+                                        <th>Médecins impliqués</th>
                                         <th>Message</th>
                                         <th>Statut</th>
                                     </tr>
@@ -172,20 +204,17 @@ export default function EchangeModel() {
                                 <tbody>
                                     {sentExchanges.map(exchange => (
                                         <tr key={exchange._id}>
+                                            <td>{renderGardeDetails(exchange.gardesToGive)}</td>
+                                            <td>{renderGardeDetails(exchange.gardesToGet)}</td>
                                             <td>
-                                                {Array.isArray(exchange.gardeId) ? (
+                                                {Array.isArray(exchange.toDoctors) ? (
                                                     <ul>
-                                                        {exchange.gardeId.map(garde => (
-                                                            <li key={garde._id}>{garde.date ? formatDate(garde.date) : 'Date inconnue'}</li>
+                                                        {exchange.toDoctors.map(doctor => (
+                                                            <li key={doctor._id}>{doctor.prenom} {doctor.nom}</li>
                                                         ))}
                                                     </ul>
-                                                ) : exchange.gardeId?.date ? (
-                                                    formatDate(exchange.gardeId.date)
-                                                ) : (
-                                                    'Date inconnue'
-                                                )}
+                                                ) : 'N/A'}
                                             </td>
-                                            <td>{exchange.toDoctor?.prenom} {exchange.toDoctor?.nom}</td>
                                             <td>{exchange.message}</td>
                                             <td>{exchange.status}</td>
                                         </tr>
@@ -200,10 +229,11 @@ export default function EchangeModel() {
                         {receivedExchanges.length === 0 ? (
                             <p>Aucune demande d'échange reçue.</p>
                         ) : (
-                            <Table striped bordered hover>
+                            <Table striped bordered hover responsive>
                                 <thead>
                                     <tr>
-                                        <th>Date(s)</th>
+                                        <th>Gardes à donner (Gardes de l'expéditeur)</th>
+                                        <th>Gardes à obtenir (Vos gardes)</th>
                                         <th>Expéditeur</th>
                                         <th>Message</th>
                                         <th>Actions</th>
@@ -212,19 +242,8 @@ export default function EchangeModel() {
                                 <tbody>
                                     {receivedExchanges.map(exchange => (
                                         <tr key={exchange._id}>
-                                            <td>
-                                                {Array.isArray(exchange.gardeId) ? (
-                                                    <ul>
-                                                        {exchange.gardeId.map(garde => (
-                                                            <li key={garde._id}>{garde.date ? formatDate(garde.date) : 'Date inconnue'}</li>
-                                                        ))}
-                                                    </ul>
-                                                ) : exchange.gardeId?.date ? (
-                                                    formatDate(exchange.gardeId.date)
-                                                ) : (
-                                                    'Date inconnue'
-                                                )}
-                                            </td>
+                                            <td>{renderGardeDetails(exchange.gardesToGive)}</td>
+                                            <td>{renderGardeDetails(exchange.gardesToGet)}</td>
                                             <td>{exchange.fromDoctor?.prenom} {exchange.fromDoctor?.nom}</td>
                                             <td>{exchange.message}</td>
                                             <td>
