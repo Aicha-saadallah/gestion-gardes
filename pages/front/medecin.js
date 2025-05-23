@@ -18,6 +18,7 @@ export default function Planning() {
     const [activeFilter, setActiveFilter] = useState("all");
     const [showModal, setShowModal] = useState(false);
     const [selectedGarde, setSelectedGarde] = useState(null);
+    const [showGiveModal, setShowGiveModal] = useState(false);
     const [showExchangeModal, setShowExchangeModal] = useState(false);
     const [message, setMessage] = useState('');
     const [selectedMedecinId, setSelectedMedecinId] = useState('');
@@ -35,6 +36,73 @@ export default function Planning() {
         router.push("/front/login");
     };
 
+    const fetchData = async () => {
+        if (!userData) return;
+
+        try {
+            setLoadingData(true);
+            setError(null);
+            const myId = String(userData._id || userData.id);
+
+            const gardeRes = await axios.get("/api/back/mod/garde", {
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            });
+
+            let gardes = gardeRes.data?.gardes || [];
+
+            if (["Médecin", "Chef de service"].includes(userData.role)) {
+                gardes = gardes.filter(garde => garde.service === userData.service);
+            }
+
+            const formattedGardes = gardes.map((g) => ({
+                id: g._id,
+                title: `${g.nom} ${g.prenom} - ${g.service}`,
+                start: g.date,
+                end: g.date,
+                allDay: true,
+                service: g.service,
+                nom: g.nom,
+                prenom: g.prenom,
+                doctorId: g.doctor,
+                backgroundColor: String(g.doctor) === myId ? 'lightblue' : '',
+                borderColor: String(g.doctor) === myId ? 'blue' : ''
+            }));
+
+            setAllGardes(formattedGardes);
+
+            const filteredEvents = activeFilter === "my"
+                ? formattedGardes.filter(garde => String(garde.doctorId) === myId)
+                : formattedGardes;
+
+            setEvents(filteredEvents);
+
+            if (userData?.service) {
+                const query = new URLSearchParams({
+                    service: userData.service,
+                    currentUserId: myId
+                }).toString();
+                const memberRes = await axios.get(`/api/back/mod/medecinGarde?${query}`, {
+                    headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+                });
+
+                if (memberRes.data?.success && memberRes.data?.data?.members) {
+                    setMembers(memberRes.data.data.members || []);
+                } else {
+                    console.error("Failed to load members:", memberRes.data);
+                    setMembers([]);
+                }
+            }
+        } catch (err) {
+            console.error("Data loading error:", err);
+            setError("Erreur lors du chargement des données. Veuillez réessayer.");
+        } finally {
+            setLoadingData(false);
+        }
+    };
+
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem("user"));
         if (user) {
@@ -45,73 +113,6 @@ export default function Planning() {
     }, [router]);
 
     useEffect(() => {
-        async function fetchData() {
-            if (!userData) return;
-
-            try {
-                setLoadingData(true);
-                setError(null);
-                const myId = String(userData._id || userData.id);
-
-                const gardeRes = await axios.get("/api/back/mod/garde", {
-                    headers: {
-                        'Cache-Control': 'no-cache',
-                        'Pragma': 'no-cache'
-                    }
-                });
-
-                let gardes = gardeRes.data?.gardes || [];
-
-                if (["Médecin", "Chef de service"].includes(userData.role)) {
-                    gardes = gardes.filter(garde => garde.service === userData.service);
-                }
-
-                const formattedGardes = gardes.map((g) => ({
-                    id: g._id,
-                    title: `${g.nom} ${g.prenom} - ${g.service}`,
-                    start: g.date,
-                    end: g.date,
-                    allDay: true,
-                    service: g.service,
-                    nom: g.nom,
-                    prenom: g.prenom,
-                    doctorId: g.doctor,
-                    backgroundColor: String(g.doctor) === myId ? 'lightblue' : '',
-                    borderColor: String(g.doctor) === myId ? 'blue' : ''
-                }));
-
-                setAllGardes(formattedGardes);
-
-                const filteredEvents = activeFilter === "my"
-                    ? formattedGardes.filter(garde => String(garde.doctorId) === myId)
-                    : formattedGardes;
-
-                setEvents(filteredEvents);
-
-                if (userData?.service) {
-                    const query = new URLSearchParams({
-                        service: userData.service,
-                        currentUserId: myId
-                    }).toString();
-                    const memberRes = await axios.get(`/api/back/mod/medecinGarde?${query}`, {
-                        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
-                    });
-
-                    if (memberRes.data?.success && memberRes.data?.data?.members) {
-                        setMembers(memberRes.data.data.members || []);
-                    } else {
-                        console.error("Failed to load members:", memberRes.data);
-                        setMembers([]);
-                    }
-                }
-            } catch (err) {
-                console.error("Data loading error:", err);
-                setError("Erreur lors du chargement des données. Veuillez réessayer.");
-            } finally {
-                setLoadingData(false);
-            }
-        }
-
         fetchData();
     }, [userData, activeFilter]);
 
@@ -123,35 +124,112 @@ export default function Planning() {
         }
     };
 
-    const handleGiveGarde = () => {
+    const handleInitiateGiveGarde = () => {
         setShowModal(false);
-        setShowExchangeModal(true);
+        setShowGiveModal(true);
+        setMessage('');
+        setMedecinSearch('');
+        setSelectedMedecinId('');
     };
 
-    const handleSelectMedecin = (medecin) => {
-        setSelectedMedecinId(medecin.id);
-        setMedecinSearch(`${medecin.prenom} ${medecin.nom}`);
-        setShowMedecinList(false);
-    };
-
-    const handleExchangeSubmit = async (e) => {
+    const handleSubmitGiveGarde = async (e) => {
         e.preventDefault();
         if (!selectedGarde || !selectedMedecinId) {
-            setError("Veuillez sélectionner un médecin pour l'échange");
+            setError("Veuillez sélectionner un médecin à qui donner la garde.");
+            return;
+        }
+
+        // Vérifications de date
+        const gardeDate = new Date(selectedGarde.start);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // 1. Vérifier si la date est passée
+        if (gardeDate < today) {
+            setError("Impossible de modifier une garde dont la date est passée.");
+            return;
+        }
+
+        // 2. Vérifier qu'il reste au moins 1 jour avant la garde
+        const oneDayBefore = new Date(gardeDate);
+        oneDayBefore.setDate(oneDayBefore.getDate() - 1);
+        
+        if (today >= oneDayBefore) {
+            setError("Les demandes doivent être faites au moins 1 jour avant la date de la garde.");
             return;
         }
 
         try {
             setLoading(true);
             setError(null);
+            setSuccess(null);
+
+            const response = await axios.post("/api/back/mod/donnerGarde", {
+                gardeId: selectedGarde.id,
+                nouveauMedecinId: selectedMedecinId,
+                raison: message
+            }, {
+                headers: {
+                    'x-user-id': userData._id || userData.id
+                }
+            });
+
+            setSuccess(response.data.message || "Demande de don envoyée avec succès !");
+            await fetchData();
+
+            setTimeout(() => {
+                setShowGiveModal(false);
+                setSuccess(null);
+                setMedecinSearch('');
+                setSelectedMedecinId('');
+                setMessage('');
+            }, 3000);
+
+        } catch (err) {
+            setError(err.response?.data?.message || "Erreur lors de l'envoi de la demande de don.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSubmitExchange = async (e) => {
+        e.preventDefault();
+        if (!selectedGarde || !selectedMedecinId) {
+            setError("Veuillez sélectionner un médecin pour l'échange.");
+            return;
+        }
+
+        // Vérifications de date
+        const gardeDate = new Date(selectedGarde.start);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (gardeDate < today) {
+            setError("Impossible de modifier une garde dont la date est passée.");
+            return;
+        }
+
+        const oneDayBefore = new Date(gardeDate);
+        oneDayBefore.setDate(oneDayBefore.getDate() - 1);
+        
+        if (today >= oneDayBefore) {
+            setError("Les demandes doivent être faites au moins 1 jour avant la date de la garde.");
+            return;
+        }
+
+        try {
+            setLoading(true);
+            setError(null);
+            setSuccess(null);
 
             await axios.post("/api/back/mod/exchange", {
                 originalGardeId: selectedGarde.id,
                 requestedDoctorId: selectedMedecinId,
-                message
+                message: message
             });
 
-            setSuccess("Proposition d'échange envoyée avec succès");
+            setSuccess("Proposition d'échange envoyée avec succès !");
+
             setTimeout(() => {
                 setShowExchangeModal(false);
                 setSuccess(null);
@@ -160,10 +238,16 @@ export default function Planning() {
                 setMessage('');
             }, 2000);
         } catch (err) {
-            setError(err.response?.data?.message || "Erreur lors de la proposition");
+            setError(err.response?.data?.message || "Erreur lors de la proposition d'échange.");
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSelectMedecin = (medecin) => {
+        setSelectedMedecinId(medecin.id);
+        setMedecinSearch(`${medecin.prenom} ${medecin.nom}`);
+        setShowMedecinList(false);
     };
 
     const formatDate = (dateStr) => {
@@ -207,7 +291,7 @@ export default function Planning() {
                     Mes gardes
                 </button>
                 <Link href="/front/EchangeModel" className={styles.menuButton}>
-                    Mes echanges
+                    Mes échanges
                 </Link>
             </div>
 
@@ -236,7 +320,7 @@ export default function Planning() {
                 </div>
             )}
 
-            {/* Garde Details Modal */}
+            {/* Modal de détails de la Garde */}
             <Modal show={showModal} onHide={() => setShowModal(false)} centered size="lg">
                 <Modal.Header closeButton>
                     <Modal.Title>Garde du {selectedGarde && formatDate(selectedGarde.start)}</Modal.Title>
@@ -257,20 +341,20 @@ export default function Planning() {
                                             <Button
                                                 variant="primary"
                                                 className={styles.actionButton}
-                                                onClick={handleGiveGarde}
+                                                onClick={handleInitiateGiveGarde}
                                             >
-                                                donne cette garde
+                                                Donner cette garde
                                             </Button>
                                             <Button
                                                 variant="success"
                                                 className={styles.actionButton}
                                                 onClick={() => {
                                                     if (selectedGarde?.id) {
+                                                        setShowModal(false);
                                                         router.push(`/front/echange?gardeId=${selectedGarde.id}`);
                                                     } else {
                                                         setError("Impossible d'ouvrir la page d'échange : ID de garde non trouvé.");
                                                     }
-                                                    setShowModal(false);
                                                 }}
                                             >
                                                 J'échange ma garde
@@ -289,15 +373,10 @@ export default function Planning() {
                 </Modal.Footer>
             </Modal>
 
-            {/* Exchange Proposal Modal */}
-            <Modal show={showExchangeModal} onHide={() => {
-                setShowExchangeModal(false);
-                setMedecinSearch('');
-                setSelectedMedecinId('');
-                setMessage('');
-            }} size="lg">
+            {/* Modal pour "Donner une garde" */}
+            <Modal show={showGiveModal} onHide={() => setShowGiveModal(false)} size="lg">
                 <Modal.Header closeButton>
-                    <Modal.Title>Proposer un échange</Modal.Title>
+                    <Modal.Title>Donner une garde</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     {error && <Alert variant="danger">{error}</Alert>}
@@ -305,18 +384,18 @@ export default function Planning() {
 
                     {selectedGarde && (
                         <div className="mb-4">
-                            <h5>Vous souhaitez échanger :</h5>
+                            <h5>Vous souhaitez donner la garde du :</h5>
                             <div className="p-3 bg-light rounded">
                                 <p className="mb-1"><strong>Date :</strong> {formatDate(selectedGarde.start)}</p>
                                 <p className="mb-1"><strong>Service :</strong> {selectedGarde.service}</p>
-                                <p className="mb-0"><strong>Attribuée à :</strong> {selectedGarde.prenom} {selectedGarde.nom}</p>
+                                <p className="mb-0"><strong>Actuellement attribuée à :</strong> {selectedGarde.prenom} {selectedGarde.nom}</p>
                             </div>
                         </div>
                     )}
 
-                    <Form onSubmit={handleExchangeSubmit}>
+                    <Form onSubmit={handleSubmitGiveGarde}>
                         <Form.Group className="mb-3">
-                            <Form.Label>Choisir un médecin :</Form.Label>
+                            <Form.Label>À quel médecin voulez-vous donner cette garde ?</Form.Label>
                             <div className="position-relative">
                                 <Form.Control
                                     type="text"
@@ -326,7 +405,7 @@ export default function Planning() {
                                         setShowMedecinList(true);
                                     }}
                                     onFocus={() => setShowMedecinList(true)}
-                                    placeholder="Tapez un nom"
+                                    placeholder="Rechercher un médecin par nom..."
                                     autoComplete="off"
                                 />
                                 {showMedecinList && filteredMedecins.length > 0 && (
@@ -346,33 +425,33 @@ export default function Planning() {
                             </div>
                             {medecinSearch && !selectedMedecinId && (
                                 <Form.Text className="text-muted">
-                                    {filteredMedecins.length === 0 ? "Aucun médecin trouvé" : "Sélectionnez un médecin"}
+                                    {filteredMedecins.length === 0 ? "Aucun médecin trouvé" : "Sélectionnez un médecin dans la liste."}
                                 </Form.Text>
                             )}
                         </Form.Group>
 
                         <Form.Group className="mb-4">
-                            <Form.Label>Message :</Form.Label>
+                            <Form.Label>Raison de l'attribution (facultatif) :</Form.Label>
                             <Form.Control
                                 as="textarea"
-                                rows={4}
+                                rows={3}
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
-                                placeholder="Expliquez votre demande..."
+                                placeholder="Ex: 'J'ai un imprévu ce jour-là', 'Je suis en congés', etc."
                             />
                         </Form.Group>
 
                         <div className="d-flex justify-content-end gap-3">
-                            <Button variant="outline-secondary" onClick={() => setShowExchangeModal(false)}>
+                            <Button variant="outline-secondary" onClick={() => setShowGiveModal(false)}>
                                 Annuler
                             </Button>
                             <Button variant="primary" type="submit" disabled={loading || !selectedMedecinId}>
                                 {loading ? (
                                     <>
                                         <Spinner animation="border" size="sm" className="me-2" />
-                                        Envoi en cours...
+                                        Attribution en cours...
                                     </>
-                                ) : 'Envoyer la proposition'}
+                                ) : 'Donner la garde'}
                             </Button>
                         </div>
                     </Form>

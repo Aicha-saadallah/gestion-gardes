@@ -1,181 +1,154 @@
-/* inscription.module.css */
+/* styles/inscription.module.css */
 
 .container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background-image: url('/mnt/data/image.png');
-    background-size: cover;
-    background-position: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: radial-gradient(ellipse at center, #0f172a 0%, #1e293b 100%);
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.formContainer {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 0 30px rgba(3, 169, 244, 0.3);
+  color: white;
+  position: relative;
+  z-index: 1;
+}
+
+.iconCircle {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.iconCircle img {
+  width: 60px;
+  height: 60px;
+  border: 2px solid #38bdf8;
+  border-radius: 50%;
+  padding: 10px;
+}
+
+.title {
+  text-align: center;
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 30px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+.inputGroup {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.inputGroup input, .select {
+  width: 100%;
+  padding: 12px 40px 12px 40px;
+  border-radius: 30px;
+  border: none;
+  outline: none;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 14px;
+}
+
+.inputGroup i {
+  position: absolute;
+  top: 50%;
+  left: 15px;
+  transform: translateY(-50%);
+  color: #38bdf8;
+  font-size: 16px;
+}
+
+.select {
+  appearance: none;
+}
+
+.submitButton {
+  margin-top: 10px;
+  padding: 12px;
+  background: linear-gradient(to right, #2563eb, #0ea5e9);
+  border: none;
+  color: white;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: background 0.3s ease;
+}
+
+.submitButton:hover {
+  background: linear-gradient(to right, #1d4ed8, #0284c7);
+}
+
+.remember {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #e0f2fe;
+  margin-top: -10px;
+  margin-bottom: 10px;
+}
+
+.message {
+  padding: 10px;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.success {
+  background-color: #4ade80;
+  color: #065f46;
+}
+
+.error {
+  background-color: #f87171;
+  color: #7f1d1d;
+}
+.successContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 20px;
+}
+
+.successIcon {
+  width: 60px;
+  height: 60px;
+  color: #28a745;
+  margin-bottom: 15px;
+  animation: popIn 0.3s ease-in-out;
+}
+
+.successText {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+}
+
+@keyframes popIn {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
   }
-  
-  .formContainer {
-    background: rgba(255, 255, 255, 0.9);
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 400px;
+  100% {
+    transform: scale(1);
+    opacity: 1;
   }
-  
-  .form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  
-  .inputGroup {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  
-  .inputGroup label {
-    font-weight: bold;
-    color: #333;
-  }
-  
-  .inputGroup input,
-  .inputGroup select {
-    padding: 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 1rem;
-  }
-  
-  .inputGroup input:focus,
-  .inputGroup select:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-  }
-  
-  .error {
-    color: #dc3545;
-    font-size: 0.875rem;
-    margin-top: 0.25rem;
-  }
-  
-  .submitButton {
-    background-color: #007bff;
-    color: white;
-    padding: 0.75rem;
-    border: none;
-    border-radius: 4px;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  
-  .submitButton:hover {
-    background-color: #0056b3;
-  }
-  .container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 2rem;
-  }
-  
-  .formContainer {
-    background: white;
-    border-radius: 8px;
-    padding: 2rem;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  }
-  
-  .title {
-    text-align: center;
-    color: #2c3e50;
-    margin-bottom: 1.5rem;
-    font-size: 1.8rem;
-  }
-  
-  .form {
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
-  }
-  
-  .inputGroup {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  
-  .inputGroup label {
-    font-weight: 500;
-    color: #2c3e50;
-  }
-  
-  .inputGroup input,
-  .inputGroup select {
-    padding: 0.8rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
-  }
-  
-  .submitButton {
-    background-color: #3498db;
-    color: white;
-    padding: 0.8rem;
-    border: none;
-    border-radius: 4px;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
-  }
-  
-  .submitButton:hover {
-    background-color: #2980b9;
-  }
-  
-  .submitButton:disabled {
-    background-color: #95a5a6;
-    cursor: not-allowed;
-  }
-  
-  .message {
-    padding: 0.8rem;
-    border-radius: 4px;
-    margin-bottom: 1rem;
-    text-align: center;
-  }
-  
-  .success {
-    background-color: #d4edda;
-    color: #155724;
-  }
-  
-  .error {
-    background-color: #f8d7da;
-    color: #721c24;
-  }
-  
-  .serviceAutocomplete {
-    position: relative;
-  }
-  
-  .suggestionsList {
-    position: absolute;
-    width: 100%;
-    max-height: 200px;
-    overflow-y: auto;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    margin-top: 2px;
-    z-index: 10;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-  
-  .suggestionsList li {
-    padding: 0.8rem;
-    cursor: pointer;
-    list-style: none;
-  }
-  
-  .suggestionsList li:hover {
-    background-color: #f5f5f5;
-  }
+}

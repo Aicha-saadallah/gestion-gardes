@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
 import style from "@/styles/inscription.module.css";
-import Header from "@/components/head";
+
 import { Modal, Button } from "react-bootstrap";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import allServices from '@/data/services';
@@ -126,7 +126,7 @@ export default function Inscription() {
 
   return (
     <>
-      <Header />
+      
       <div className={style.container}>
         <div className={style.formContainer}>
           <h2 className={style.title}>Inscription</h2>

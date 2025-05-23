@@ -1,9 +1,8 @@
-// pages/front/inscription.js
 import { useState } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
 import style from "@/styles/inscription.module.css";
-import Header from "@/components/head";
+
 import { Modal, Button } from "react-bootstrap";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -20,14 +19,8 @@ export default function InscriptionAdmin() {
 
   const router = useRouter();
 
-  const validateEmail = (email) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
-  };
-
-  const validatePassword = (password) => {
-    return password.length >= 6;
-  };
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const validatePassword = (password) => password.length >= 6;
 
   async function ajouterInfo() {
     if (isSubmitting) return;
@@ -62,18 +55,10 @@ export default function InscriptionAdmin() {
       if (response.data.success) {
         setSuccessMessage(`${response.data.data.role} inscrit avec succès.`);
         setShowSuccessModal(true);
-        setTimeout(() => {
-          if (role === "admin") {
-            router.push("/front/admin");
-          } else if (role === "Superviseur") {
-            router.push("/front/superviseur");
-          }
-        }, 2000);
       } else {
         setMessage({ type: "error", text: `❌ ${response.data.message}` });
       }
     } catch (error) {
-      console.error("Erreur d'inscription:", error);
       const errorMsg = error.response?.data?.message || "Une erreur est survenue lors de l'inscription";
       setMessage({ type: "error", text: `❌ ${errorMsg}` });
     } finally {
@@ -81,18 +66,27 @@ export default function InscriptionAdmin() {
     }
   }
 
+  // ✅ Nouvelle version avec redirection stylée
   const handleCloseSuccessModal = () => {
     setShowSuccessModal(false);
-    if (role === "admin") {
-      router.push("/front/admin");
-    } else if (role === "Superviseur") {
-      router.push("/front/superviseur");
-    }
+    setTimeout(() => {
+      switch (role) {
+        case "admin":
+        case "Administrateur":
+          router.push("/front/admin");
+          break;
+        case "Superviseur":
+          router.push("/front/superviseur");
+          break;
+        default:
+          router.push("/");
+          break;
+      }
+    }, 300);
   };
 
   return (
     <>
-      <Header />
       <div className={style.container}>
         <div className={style.formContainer}>
           <h2 className={style.title}>Inscription Administrateur/Superviseur</h2>
@@ -118,7 +112,6 @@ export default function InscriptionAdmin() {
                 <option value="">Sélectionnez un rôle</option>
                 <option value="Administrateur">Administrateur</option>
                 <option value="Superviseur">Superviseur</option>
-                {/* Ajoutez d'autres rôles de gestion si nécessaire */}
               </select>
             </div>
             <div className={style.inputGroup}>
@@ -149,9 +142,10 @@ export default function InscriptionAdmin() {
         </div>
       </div>
 
+      {/* ✅ Modale de succès stylisée */}
       <Modal show={showSuccessModal} onHide={handleCloseSuccessModal} centered>
         <Modal.Header closeButton>
-          <Modal.Title>Inscription</Modal.Title>
+          <Modal.Title>✅ Inscription réussie</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <div className={style.successContent}>
