@@ -72,7 +72,7 @@ export default function InscriptionAdmin() {
     setTimeout(() => {
       switch (role) {
         case "admin":
-        case "Administrateur":
+     
           router.push("/front/admin");
           break;
         case "Superviseur":
@@ -110,7 +110,7 @@ export default function InscriptionAdmin() {
               <label>Rôle :</label>
               <select value={role} onChange={(e) => setRole(e.target.value)} required className={style.select}>
                 <option value="">Sélectionnez un rôle</option>
-                <option value="Administrateur">Administrateur</option>
+                <option value="admin">Administrateur</option>
                 <option value="Superviseur">Superviseur</option>
               </select>
             </div>

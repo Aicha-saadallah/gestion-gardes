@@ -1,4 +1,3 @@
-// front/medecin.js
 import { useState, useEffect, useRef } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -19,7 +18,6 @@ export default function Planning() {
     const [showModal, setShowModal] = useState(false);
     const [selectedGarde, setSelectedGarde] = useState(null);
     const [showGiveModal, setShowGiveModal] = useState(false);
-    const [showExchangeModal, setShowExchangeModal] = useState(false);
     const [message, setMessage] = useState('');
     const [selectedMedecinId, setSelectedMedecinId] = useState('');
     const [loading, setLoading] = useState(false);
@@ -28,12 +26,29 @@ export default function Planning() {
     const [success, setSuccess] = useState(null);
     const [medecinSearch, setMedecinSearch] = useState('');
     const [showMedecinList, setShowMedecinList] = useState(false);
+    const [medecinAvailability, setMedecinAvailability] = useState({});
     const calendarRef = useRef(null);
     const router = useRouter();
 
     const handleLogout = () => {
         localStorage.removeItem("user");
         router.push("/front/login");
+    };
+
+    const checkMedecinAvailability = async (medecinId, date) => {
+        try {
+            const response = await axios.get(`/api/back/mod/checkMedecinDispo?medecinId=${medecinId}&date=${date}`);
+            return !response.data.hasGarde;
+        } catch (err) {
+            console.error("Erreur vérification disponibilité:", err);
+            return false;
+        }
+    };
+
+    const handleSelectMedecin = (medecin) => {
+        setSelectedMedecinId(medecin.id);
+        setMedecinSearch(`${medecin.prenom} ${medecin.nom}`);
+        setShowMedecinList(false);
     };
 
     const fetchData = async () => {
@@ -57,19 +72,30 @@ export default function Planning() {
                 gardes = gardes.filter(garde => garde.service === userData.service);
             }
 
-            const formattedGardes = gardes.map((g) => ({
-                id: g._id,
-                title: `${g.nom} ${g.prenom} - ${g.service}`,
-                start: g.date,
-                end: g.date,
-                allDay: true,
-                service: g.service,
-                nom: g.nom,
-                prenom: g.prenom,
-                doctorId: g.doctor,
-                backgroundColor: String(g.doctor) === myId ? 'lightblue' : '',
-                borderColor: String(g.doctor) === myId ? 'blue' : ''
-            }));
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const formattedGardes = gardes.map((g) => {
+                const gardeDate = new Date(g.date);
+                const isPast = gardeDate <= today;
+                
+                return {
+                    id: g._id,
+                    title: `${g.nom} ${g.prenom} - ${g.service}`,
+                    start: g.date,
+                    end: g.date,
+                    allDay: true,
+                    service: g.service,
+                    nom: g.nom,
+                    prenom: g.prenom,
+                    doctorId: g.doctor,
+                    backgroundColor: String(g.doctor) === myId ? 'lightblue' : '',
+                    borderColor: String(g.doctor) === myId ? 'blue' : '',
+                    className: isPast ? 'past-garde' : '',
+                    startEditable: !isPast,
+                    durationEditable: !isPast
+                };
+            });
 
             setAllGardes(formattedGardes);
 
@@ -119,17 +145,43 @@ export default function Planning() {
     const handleEventClick = (info) => {
         const event = allGardes.find((garde) => garde.id === info.event.id);
         if (event) {
+            const gardeDate = new Date(event.start);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (gardeDate <= today) {
+                setError("Cette garde est passée ou a lieu aujourd'hui et ne peut pas être modifiée.");
+                return;
+            }
+            
             setSelectedGarde(event);
             setShowModal(true);
         }
     };
 
-    const handleInitiateGiveGarde = () => {
+    const handleInitiateGiveGarde = async () => {
         setShowModal(false);
         setShowGiveModal(true);
         setMessage('');
         setMedecinSearch('');
         setSelectedMedecinId('');
+        setMedecinAvailability({});
+    };
+
+    const handleMedecinSearchChange = async (e) => {
+        setMedecinSearch(e.target.value);
+        setShowMedecinList(true);
+        
+        if (selectedGarde) {
+            const availabilityMap = {};
+            for (const medecin of members) {
+                if (`${medecin.prenom} ${medecin.nom}`.toLowerCase().includes(e.target.value.toLowerCase())) {
+                    const isAvailable = await checkMedecinAvailability(medecin.id, selectedGarde.start);
+                    availabilityMap[medecin.id] = isAvailable;
+                }
+            }
+            setMedecinAvailability(availabilityMap);
+        }
     };
 
     const handleSubmitGiveGarde = async (e) => {
@@ -144,9 +196,9 @@ export default function Planning() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // 1. Vérifier si la date est passée
-        if (gardeDate < today) {
-            setError("Impossible de modifier une garde dont la date est passée.");
+        // 1. Vérifier si la date est passée ou aujourd'hui
+        if (gardeDate <= today) {
+            setError("Impossible de modifier une garde dont la date est aujourd'hui ou passée.");
             return;
         }
 
@@ -156,6 +208,12 @@ export default function Planning() {
         
         if (today >= oneDayBefore) {
             setError("Les demandes doivent être faites au moins 1 jour avant la date de la garde.");
+            return;
+        }
+
+        // 3. Vérifier si le médecin est disponible
+        if (medecinAvailability[selectedMedecinId] === false) {
+            setError("Ce médecin a déjà une garde programmée ce jour-là. Veuillez en choisir un autre.");
             return;
         }
 
@@ -190,64 +248,6 @@ export default function Planning() {
         } finally {
             setLoading(false);
         }
-    };
-
-    const handleSubmitExchange = async (e) => {
-        e.preventDefault();
-        if (!selectedGarde || !selectedMedecinId) {
-            setError("Veuillez sélectionner un médecin pour l'échange.");
-            return;
-        }
-
-        // Vérifications de date
-        const gardeDate = new Date(selectedGarde.start);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        if (gardeDate < today) {
-            setError("Impossible de modifier une garde dont la date est passée.");
-            return;
-        }
-
-        const oneDayBefore = new Date(gardeDate);
-        oneDayBefore.setDate(oneDayBefore.getDate() - 1);
-        
-        if (today >= oneDayBefore) {
-            setError("Les demandes doivent être faites au moins 1 jour avant la date de la garde.");
-            return;
-        }
-
-        try {
-            setLoading(true);
-            setError(null);
-            setSuccess(null);
-
-            await axios.post("/api/back/mod/exchange", {
-                originalGardeId: selectedGarde.id,
-                requestedDoctorId: selectedMedecinId,
-                message: message
-            });
-
-            setSuccess("Proposition d'échange envoyée avec succès !");
-
-            setTimeout(() => {
-                setShowExchangeModal(false);
-                setSuccess(null);
-                setMedecinSearch('');
-                setSelectedMedecinId('');
-                setMessage('');
-            }, 2000);
-        } catch (err) {
-            setError(err.response?.data?.message || "Erreur lors de la proposition d'échange.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSelectMedecin = (medecin) => {
-        setSelectedMedecinId(medecin.id);
-        setMedecinSearch(`${medecin.prenom} ${medecin.nom}`);
-        setShowMedecinList(false);
     };
 
     const formatDate = (dateStr) => {
@@ -337,29 +337,13 @@ export default function Planning() {
                                 <h5 className={styles.sectionTitle}>Actions :</h5>
                                 <div className={styles.actionButtons}>
                                     {userData && String(selectedGarde.doctorId) === String(userData._id || userData.id) && (
-                                        <>
-                                            <Button
-                                                variant="primary"
-                                                className={styles.actionButton}
-                                                onClick={handleInitiateGiveGarde}
-                                            >
-                                                Donner cette garde
-                                            </Button>
-                                            <Button
-                                                variant="success"
-                                                className={styles.actionButton}
-                                                onClick={() => {
-                                                    if (selectedGarde?.id) {
-                                                        setShowModal(false);
-                                                        router.push(`/front/echange?gardeId=${selectedGarde.id}`);
-                                                    } else {
-                                                        setError("Impossible d'ouvrir la page d'échange : ID de garde non trouvé.");
-                                                    }
-                                                }}
-                                            >
-                                                J'échange ma garde
-                                            </Button>
-                                        </>
+                                        <Button
+                                            variant="primary"
+                                            className={styles.actionButton}
+                                            onClick={handleInitiateGiveGarde}
+                                        >
+                                            Donner cette garde
+                                        </Button>
                                     )}
                                 </div>
                             </div>
@@ -400,10 +384,7 @@ export default function Planning() {
                                 <Form.Control
                                     type="text"
                                     value={medecinSearch}
-                                    onChange={(e) => {
-                                        setMedecinSearch(e.target.value);
-                                        setShowMedecinList(true);
-                                    }}
+                                    onChange={handleMedecinSearchChange}
                                     onFocus={() => setShowMedecinList(true)}
                                     placeholder="Rechercher un médecin par nom..."
                                     autoComplete="off"
@@ -414,10 +395,17 @@ export default function Planning() {
                                         {filteredMedecins.map((medecin) => (
                                             <div
                                                 key={medecin.id}
-                                                className="p-2 hover-bg cursor-pointer"
-                                                onClick={() => handleSelectMedecin(medecin)}
+                                                className={`p-2 ${medecinAvailability[medecin.id] !== false ? 'cursor-pointer hover-bg' : 'disabled-medecin'}`}
+                                                onClick={() => medecinAvailability[medecin.id] !== false && handleSelectMedecin(medecin)}
                                             >
-                                                {medecin.prenom} {medecin.nom} ({medecin.service})
+                                                <div>
+                                                    {medecin.prenom} {medecin.nom} ({medecin.service})
+                                                </div>
+                                                {medecinAvailability[medecin.id] === false && (
+                                                    <div className="medecin-unavailable">
+                                                        Déjà une garde ce jour-là
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -425,7 +413,7 @@ export default function Planning() {
                             </div>
                             {medecinSearch && !selectedMedecinId && (
                                 <Form.Text className="text-muted">
-                                    {filteredMedecins.length === 0 ? "Aucun médecin trouvé" : "Sélectionnez un médecin dans la liste."}
+                                    {filteredMedecins.length === 0 ? "Aucun médecin trouvé" : "Sélectionnez un médecin disponible dans la liste."}
                                 </Form.Text>
                             )}
                         </Form.Group>
@@ -445,7 +433,11 @@ export default function Planning() {
                             <Button variant="outline-secondary" onClick={() => setShowGiveModal(false)}>
                                 Annuler
                             </Button>
-                            <Button variant="primary" type="submit" disabled={loading || !selectedMedecinId}>
+                            <Button 
+                                variant="primary" 
+                                type="submit" 
+                                disabled={loading || !selectedMedecinId || medecinAvailability[selectedMedecinId] === false}
+                            >
                                 {loading ? (
                                     <>
                                         <Spinner animation="border" size="sm" className="me-2" />
@@ -467,6 +459,27 @@ export default function Planning() {
                 }
                 .z-index-1000 {
                     z-index: 1000;
+                }
+                .past-garde {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                    pointer-events: none;
+                    background-color: #f5f5f5 !important;
+                    color: #999 !important;
+                    border-color: #ddd !important;
+                }
+                .past-garde .fc-event-title {
+                    text-decoration: line-through;
+                }
+                .disabled-medecin {
+                    color: #ccc;
+                    cursor: not-allowed;
+                    background-color: #f8f9fa;
+                }
+                .medecin-unavailable {
+                    color: #dc3545;
+                    font-size: 0.8em;
+                    margin-top: 5px;
                 }
             `}</style>
         </div>

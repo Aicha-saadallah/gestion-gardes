@@ -53,9 +53,9 @@ export default async function handler(req, res) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // 1. Vérifier si la date est passée
-    if (gardeDate < today) {
-      return handleError(new Error("Impossible de modifier une garde dont la date est passée."), 400);
+    // 1. Vérifier si la date est passée ou aujourd'hui
+    if (gardeDate <= today) {
+      return handleError(new Error("Impossible de modifier une garde dont la date est aujourd'hui ou passée."), 400);
     }
 
     // 2. Vérifier qu'il reste au moins 1 jour avant la garde
@@ -64,6 +64,19 @@ export default async function handler(req, res) {
     
     if (today >= oneDayBefore) {
       return handleError(new Error("Les demandes doivent être faites au moins 1 jour avant la date de la garde."), 400);
+    }
+
+    // 3. Vérifier si le nouveau médecin a déjà une garde ce jour-là
+    const existingGarde = await ModelGarde.findOne({
+      doctor: nouveauMedecinId,
+      date: {
+        $gte: new Date(gardeDate.setHours(0, 0, 0, 0)),
+        $lt: new Date(gardeDate.setHours(23, 59, 59, 999))
+      }
+    });
+
+    if (existingGarde) {
+      return handleError(new Error("Le médecin sélectionné a déjà une garde programmée ce jour-là."), 400);
     }
 
     // Autorisations
@@ -86,7 +99,7 @@ export default async function handler(req, res) {
         gardesToGive: [gardeId],
         message: raison || `Don de garde proposé par ${currentUser.prenom} ${currentUser.nom}`,
         status: 'en attente',
-        isDon: true // Champ supplémentaire pour identifier les dons
+        isDon: true
       }], { session });
 
       await session.commitTransaction();
