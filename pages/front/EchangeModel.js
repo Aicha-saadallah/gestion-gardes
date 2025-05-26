@@ -191,7 +191,7 @@ export default function EchangeModel() {
                         {sentExchanges.length === 0 ? (
                             <p>Aucune demande d'échange envoyée.</p>
                         ) : (
-                            <Table striped bordered hover responsive>
+                            <Table className={styles.table} striped bordered hover responsive>
                                 <thead>
                                     <tr>
                                         <th>Gardes à donner (Mes gardes)</th>

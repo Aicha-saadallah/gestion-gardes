@@ -265,32 +265,32 @@ export default function Planning() {
         `${member.prenom} ${member.nom}`.toLowerCase().includes(medecinSearch.toLowerCase())
     );
 
-    return (
-        <div className={styles.container}>
-            <div className={styles.headerContainer}>
-                <h1 className={styles.title}>📅 Planning des Gardes</h1>
-                <button className={styles.logoutButton} onClick={handleLogout}>
-                    Déconnexion
-                </button>
-            </div>
+     return (
+    <div className={styles.container}>
+      <div className={styles.headerBar}>
+        <h1 className={styles.pageTitle}>📅 Planning des Gardes</h1>
+        <button onClick={handleLogout} className={styles.logoutButton}>
+          Déconnexion
+        </button>
+      </div>
 
             {error && <Alert variant="danger" onClose={() => setError(null)} dismissible>{error}</Alert>}
             {success && <Alert variant="success" onClose={() => setSuccess(null)} dismissible>{success}</Alert>}
 
-            <div className={styles.menuButtons}>
+            <div className={styles.filterButtons}>
                 <button
-                    className={`${styles.menuButton} ${activeFilter === 'all' ? styles.active : ''}`}
+                    className={`${styles.filterBtn} ${activeFilter === 'all' ? styles.active : ''}`}
                     onClick={() => setActiveFilter('all')}
                 >
                     Toutes les gardes
                 </button>
                 <button
-                    className={`${styles.menuButton} ${activeFilter === 'my' ? styles.active : ''}`}
+                    className={`${styles.filterBtn} ${activeFilter === 'my' ? styles.active : ''}`}
                     onClick={() => setActiveFilter('my')}
                 >
                     Mes gardes
                 </button>
-                <Link href="/front/EchangeModel" className={styles.menuButton}>
+                <Link href="/front/EchangeModel" className={styles.filterBtn}>
                     Mes échanges
                 </Link>
             </div>

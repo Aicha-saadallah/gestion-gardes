@@ -1,58 +1,89 @@
-/* styles/echange.module.css */
 .container {
-    padding: 20px;
-  }
-  
-  .title {
-    font-size: 24px;
-    margin-bottom: 20px;
-  }
-  
-  .section {
-    margin-bottom: 30px;
-    padding: 15px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-  }
-  
-  .section h2 {
-    font-size: 20px;
-    margin-top: 0;
-    margin-bottom: 10px;
-  }
-  
-  .exchangeTable {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  
-  .exchangeTable th,
-  .exchangeTable td {
-    border: 1px solid #ccc;
-    padding: 8px;
-    text-align: left;
-  }
-  
-  .exchangeTable th {
-    background-color: #f0f0f0;
-  }
-  
-  .actions {
-    display: flex;
-    gap: 10px;
-  }
-  
-  .backButton {
-    display: inline-block;
-    padding: 10px 15px;
-    margin-top: 20px;
-    background-color: #007bff;
-    color: white;
-    text-decoration: none;
-    border-radius: 5px;
-  }
-  
-  .backButton:hover {
-    background-color: #0056b3;
-  } 
-  
+  min-height: 100vh;
+  background: linear-gradient(to bottom right, #0455BF, #022F66);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.headerContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 1000px;
+  margin-bottom: 2rem;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.logoutButton {
+  background-color: #1E88E5;
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 25px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.logoutButton:hover {
+  background-color: #1565C0;
+}
+
+.navigationButtons {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.backButton {
+  background-color: #29B6F6;
+  padding: 10px 20px;
+  border-radius: 25px;
+  text-decoration: none;
+  color: white;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.backButton:hover {
+  background-color: #0288D1;
+}
+
+.exchangesSection {
+  background-color: rgba(255, 255, 255, 0.05);
+  padding: 20px;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 1000px;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.exchangesSection h2 {
+  margin-bottom: 1rem;
+  font-size: 1.8rem;
+  border-bottom: 2px solid #29B6F6;
+  padding-bottom: 0.5rem;
+}
+
+.table {
+  color: #29B6F6;
+}
+
+.table thead {
+  background-color: rgba(41, 182, 246, 0.2);
+}
+
+.table th,
+.table td {
+  color: white;
+  vertical-align: middle;
+}

@@ -64,7 +64,7 @@ const ExchangePanel = ({
     };
 
     return (
-        <div className={styles.exchangePanel}>
+        <div className={styles.exchangesSection}>
             <h3 className={styles.exchangeTitle}>Proposer un échange</h3>
 
             {loadingData ? (
@@ -123,7 +123,7 @@ const ExchangePanel = ({
                             rows={4}
                             value={exchangeMessage}
                             onChange={(e) => setExchangeMessage(e.target.value)}
-                            placeholder="Ex: Bonjour, je propose d'échanger ma garde du 15/06 contre celle du 20/06. Cordialement."
+                            placeholder="Ex: Bonjour, je propose d'échanger ma garde . Cordialement."
                         />
                     </div>
 
@@ -401,10 +401,11 @@ export default function ExchangePage() {
     return (
         <div className={styles.container}>
             <header className={styles.header}>
-                <Button variant="outline-secondary" onClick={() => router.push('/front/medecin')}>
+                <Button className={styles.logoutButton} variant="outline-secondary" onClick={() => router.push('/front/medecin')}>
                     Retour au planning
                 </Button>
-                <Button variant="outline-danger" onClick={() => {
+                  <Button className={styles.logoutButton} 
+                  variant="outline-danger" onClick={() => {
                     localStorage.removeItem("user"); // Déconnexion
                     router.push('/front/login');
                 }}>

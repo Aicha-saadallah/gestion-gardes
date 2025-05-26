@@ -29,11 +29,9 @@ export default function ServicePlanning() {
   const [exchangeLoading, setExchangeLoading] = useState(false);
   const [userService, setUserService] = useState('');
 
-  // Effect to handle authentication and set userService
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
-      console.log("No token found, redirecting to login.");
       router.push('/front/login');
       return;
     }
@@ -41,27 +39,24 @@ export default function ServicePlanning() {
     try {
       const decoded = jwt.decode(token);
       if (decoded.role !== 'Chef de service') {
-        console.log("User is not Chef de service, redirecting to homepage.");
         router.push('/');
       } else {
         setUserService(decoded.service);
-        console.log("UserService set to:", decoded.service);
+        // Ensure that the 'id' of the decoded token is also available
+        // as it might be needed for some API calls or checks.
+        // If your token payload has `id` and `_id`, make sure you're using the correct one.
       }
     } catch (err) {
-      console.error("Failed to decode token, redirecting to login:", err);
+      console.error("Erreur de décodage du jeton ou rôle invalide:", err);
       router.push('/front/login');
     }
   }, [router]);
 
-  // Effect to fetch data when userService or exchangeFilter changes
   useEffect(() => {
-    if (userService) { // Only fetch data if userService is set
-      console.log("Calling fetchData due to userService or exchangeFilter change. Current userService:", userService, "Filter:", exchangeFilter);
+    if (userService) {
       fetchData();
-    } else {
-      console.log("userService not yet set, skipping fetchData.");
     }
-  }, [userService, exchangeFilter]); // Depend on userService and exchangeFilter
+  }, [userService, exchangeFilter]); // Re-fetch data when userService or exchangeFilter changes
 
   const fetchData = async () => {
     try {
@@ -73,12 +68,11 @@ export default function ServicePlanning() {
         fetchMedecins(),
         fetchAllExchanges()
       ]);
-      console.log("All initial data fetched successfully.");
     } catch (err) {
-      console.error("Erreur fetchData (Promise.all caught):", err);
+      console.error("Erreur fetchData:", err);
       setAlert({
         variant: 'danger',
-        message: "Erreur lors du chargement des données initiales. Veuillez vérifier la console pour plus de détails."
+        message: "Erreur lors du chargement des données. Veuillez réessayer."
       });
     } finally {
       setIsLoading(false);
@@ -88,7 +82,11 @@ export default function ServicePlanning() {
   const fetchGardes = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log("Attempting to fetch gardes for service:", userService);
+      if (!token) {
+        console.warn("Token manquant pour fetchGardes. Redirection vers la connexion.");
+        router.push('/front/login'); // Redirect if token is missing
+        return;
+      }
       const res = await axios.get('/api/back/mod/garde', {
         params: { service: userService },
         headers: { Authorization: `Bearer ${token}` },
@@ -101,40 +99,40 @@ export default function ServicePlanning() {
           end: g.date,
           allDay: true
         })));
-        console.log("Gardes fetched successfully:", res.data.gardes.length);
-      } else {
-        throw new Error(res.data.message || "Failed to fetch gardes.");
       }
     } catch (err) {
-      console.error("Erreur fetchGardes:", err.message, err.response?.data);
-      // Don't set alert here if it's part of Promise.all, let fetchData handle it.
-      throw err;
+      console.error("Erreur fetchGardes:", err.response?.data || err.message || err);
+      throw err; // Re-throw to be caught by fetchData's Promise.all
     }
   };
 
   const fetchMedecins = async () => {
     try {
       const token = localStorage.getItem('token');
-      const user = jwt.decode(token); // Decoding token for currentUserId
-      console.log("Attempting to fetch medecins for service:", userService);
-      
+      if (!token) {
+        console.warn("Token manquant pour fetchMedecins. Redirection vers la connexion.");
+        router.push('/front/login');
+        return;
+      }
+      const user = jwt.decode(token); // Decode again if needed, or pass from useEffect
+
       const response = await axios.get('/api/back/mod/serviceGarde', {
-        params: { 
+        params: {
           service: userService,
-          currentUserId: user.id 
+          currentUserId: user.id // Make sure user.id is correctly populated from the token
         },
         headers: { Authorization: `Bearer ${token}` }
       });
 
       if (response.data.success) {
         setMedecins(response.data.data.members);
-        console.log("Medecins fetched successfully:", response.data.data.members.length);
-      } else {
-        throw new Error(response.data.message || "Failed to fetch medecins.");
       }
     } catch (err) {
-      console.error("Erreur fetchMedecins:", err.message, err.response?.data);
-      // Don't set alert here if it's part of Promise.all, let fetchData handle it.
+      console.error("Erreur fetchMedecins:", err.response?.data || err.message || err);
+      setAlert({
+        variant: 'danger',
+        message: err.response?.data?.message || "Erreur lors du chargement des médecins"
+      });
       throw err;
     }
   };
@@ -142,7 +140,11 @@ export default function ServicePlanning() {
   const fetchPendingRequests = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log("Attempting to fetch pending requests for service:", userService);
+      if (!token) {
+        console.warn("Token manquant pour fetchPendingRequests. Redirection vers la connexion.");
+        router.push('/front/login');
+        return;
+      }
       const response = await axios.get('/api/back/mod/approval', {
         params: { service: userService },
         headers: { Authorization: `Bearer ${token}` }
@@ -150,13 +152,15 @@ export default function ServicePlanning() {
 
       if (response.data.success) {
         setPendingRequests(response.data.doctors);
-        console.log("Pending requests fetched successfully:", response.data.doctors.length);
       } else {
-        throw new Error(response.data.message || "Failed to fetch pending requests.");
+        throw new Error(response.data.message);
       }
     } catch (err) {
-      console.error("Erreur fetchPendingRequests:", err.message, err.response?.data);
-      // Don't set alert here if it's part of Promise.all, let fetchData handle it.
+      console.error("Erreur fetchPendingRequests:", err.response?.data || err.message || err);
+      setAlert({
+        variant: 'danger',
+        message: err.response?.data?.message || "Erreur lors du chargement des demandes"
+      });
       throw err;
     }
   };
@@ -164,22 +168,27 @@ export default function ServicePlanning() {
   const fetchPendingExchanges = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log("Attempting to fetch pending exchanges for service:", userService, "with status 'en attente'");
+      if (!token) {
+        console.warn("Token manquant pour fetchPendingExchanges. Redirection vers la connexion.");
+        router.push('/front/login');
+        return;
+      }
+      // console.log('Fetching pending exchanges with token:', token); // For debugging: check token content
       const response = await axios.get('/api/back/mod/exchanges', {
-        params: { service: userService, status: 'en attente' }, // Match backend enum
+        params: { service: userService, status: 'pending' },
         headers: { Authorization: `Bearer ${token}` }
       });
 
       if (response.data.success) {
         setPendingExchanges(response.data.exchanges);
-        console.log("Pending exchanges fetched successfully:", response.data.exchanges.length);
-      } else {
-        throw new Error(response.data.message || "Failed to fetch pending exchanges.");
       }
     } catch (err) {
-      console.error("Erreur fetchPendingExchanges:", err.message, err.response?.data);
-      // Don't set alert here if it's part of Promise.all, let fetchData handle it.
-      throw err;
+      console.error("Erreur fetchPendingExchanges:", err.response?.data || err.message || err);
+      setAlert({
+        variant: 'danger',
+        message: err.response?.data?.message || "Erreur lors du chargement des échanges en attente"
+      });
+      // Do not re-throw here, as it's part of Promise.all and already handled by local alert
     }
   };
 
@@ -187,33 +196,28 @@ export default function ServicePlanning() {
     setExchangeLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const statusParam = exchangeFilter === 'all' ? undefined : 
-                          exchangeFilter === 'pending' ? 'en attente' :
-                          exchangeFilter === 'approved' ? 'accepté' :
-                          exchangeFilter === 'rejected' ? 'refusé' : undefined;
-
-      console.log("Attempting to fetch all exchanges for service:", userService, "with filter:", exchangeFilter, "=> backend status:", statusParam);
+      if (!token) {
+        console.warn("Token manquant pour fetchAllExchanges. Redirection vers la connexion.");
+        router.push('/front/login');
+        return;
+      }
+      // console.log('Fetching all exchanges with token:', token, 'Filter:', exchangeFilter); // For debugging
       const response = await axios.get('/api/back/mod/exchanges', {
-        params: { 
+        params: {
           service: userService,
-          status: statusParam
+          status: exchangeFilter === 'all' ? undefined : exchangeFilter // Send 'undefined' for 'all' to backend
         },
         headers: { Authorization: `Bearer ${token}` }
       });
 
       if (response.data.success) {
         setAllExchanges(response.data.exchanges);
-        console.log("All exchanges fetched successfully:", response.data.exchanges.length);
-      } else {
-        throw new Error(response.data.message || "Failed to fetch all exchanges.");
       }
     } catch (err) {
-      console.error("Client-side error fetching all exchanges:", err.message, err.response?.data);
-      // This fetch is called directly by fetchData, but also independently by filter changes.
-      // So, it's okay to set alert here.
+      console.error("Erreur fetchAllExchanges:", err.response?.data || err.message || err);
       setAlert({
         variant: 'danger',
-        message: err.response?.data?.message || "Erreur lors du chargement des échanges."
+        message: err.response?.data?.message || "Erreur lors du chargement des échanges"
       });
     } finally {
       setExchangeLoading(false);
@@ -230,16 +234,21 @@ export default function ServicePlanning() {
   const handleEventClick = (arg) => {
     setSelectedDate(arg.event.startStr);
     setSelectedEvent(arg.event);
-    setSelectedMedecin(arg.event.extendedProps.doctorId); // Ensure this matches your event structure
+    setSelectedMedecin(arg.event.extendedProps.doctor);
     setShowModal(true);
   };
 
   const handleSave = async () => {
     try {
       const token = localStorage.getItem('token');
-      
+      if (!token) {
+        setAlert({ variant: 'danger', message: "Authentification requise pour cette action." });
+        router.push('/front/login');
+        return;
+      }
+
       if (!selectedMedecin) {
-        throw new Error("Veuillez sélectionner un médecin.");
+        throw new Error("Veuillez sélectionner un médecin");
       }
 
       const medecin = medecins.find(m => m.id === selectedMedecin);
@@ -247,45 +256,36 @@ export default function ServicePlanning() {
         throw new Error("Médecin sélectionné introuvable.");
       }
 
-      console.log("Saving garde:", { date: selectedDate, doctorId: selectedMedecin, service: userService });
-
       if (selectedEvent) {
-        // Update existing garde
-        const updatePayload = {
+        await axios.put('/api/back/mod/garde', {
           id: selectedEvent.extendedProps._id,
           date: selectedDate,
           doctorId: selectedMedecin,
           nom: medecin.nom,
           prenom: medecin.prenom
-        };
-        await axios.put('/api/back/mod/garde', updatePayload, {
+        }, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setAlert({ variant: 'success', message: 'Garde modifiée avec succès.' });
-        console.log("Garde updated:", updatePayload);
+        setAlert({ variant: 'success', message: 'Garde modifiée avec succès' });
       } else {
-        // Add new garde
-        const addPayload = {
+        await axios.post('/api/back/mod/garde', {
           date: selectedDate,
           service: userService,
           doctorId: selectedMedecin,
           nom: medecin.nom,
           prenom: medecin.prenom
-        };
-        await axios.post('/api/back/mod/garde', addPayload, {
+        }, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setAlert({ variant: 'success', message: 'Garde ajoutée avec succès.' });
-        console.log("Garde added:", addPayload);
+        setAlert({ variant: 'success', message: 'Garde ajoutée avec succès' });
       }
-      
+
       setShowModal(false);
       await fetchGardes(); // Refresh calendar events
     } catch (err) {
-      console.error("Erreur handleSave:", err.message, err.response?.data);
-      setAlert({ 
-        variant: 'danger', 
-        message: err.response?.data?.message || err.message || "Erreur lors de l'enregistrement de la garde." 
+      setAlert({
+        variant: 'danger',
+        message: err.response?.data?.message || err.message || "Erreur lors de l'enregistrement"
       });
     }
   };
@@ -293,30 +293,37 @@ export default function ServicePlanning() {
   const handleDelete = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log("Deleting garde with ID:", selectedEvent.extendedProps._id);
+      if (!token) {
+        setAlert({ variant: 'danger', message: "Authentification requise pour cette action." });
+        router.push('/front/login');
+        return;
+      }
       await axios.delete('/api/back/mod/garde', {
         params: { id: selectedEvent.extendedProps._id },
         headers: { Authorization: `Bearer ${token}` },
       });
-      setAlert({ variant: 'success', message: 'Garde supprimée avec succès.' });
+      setAlert({ variant: 'success', message: 'Garde supprimée avec succès' });
       setShowModal(false);
       await fetchGardes(); // Refresh calendar events
     } catch (err) {
-      console.error("Erreur handleDelete:", err.message, err.response?.data);
-      setAlert({ variant: 'danger', message: err.response?.data?.message || "Erreur lors de la suppression." });
+      setAlert({ variant: 'danger', message: err.response?.data?.message || "Erreur lors de la suppression" });
     }
   };
 
   const handleApproval = async (id, action) => {
     try {
       const token = localStorage.getItem('token');
-      const decoded = jwt.decode(token);
-      console.log(`Approving/rejecting request ID ${id} with action ${action}`);
+      if (!token) {
+        setAlert({ variant: 'danger', message: "Authentification requise pour cette action." });
+        router.push('/front/login');
+        return;
+      }
+      const decoded = jwt.decode(token); // Ensure 'decoded.id' is available for approverId
 
       const response = await axios.put('/api/back/mod/approval', {
         id,
         action,
-        approverId: decoded.id
+        approverId: decoded.id // Pass the approver's ID from the token
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -327,16 +334,13 @@ export default function ServicePlanning() {
           variant: 'success',
           message: response.data.message
         });
-        await fetchGardes(); // Refresh the calendar to reflect changes
-        console.log(`Request ID ${id} ${action}d successfully.`);
-      } else {
-        throw new Error(response.data.message || "Failed to approve/reject request.");
+        await fetchGardes(); // Gardes might change after approval
       }
     } catch (err) {
-      console.error("Erreur handleApproval:", err.message, err.response?.data);
+      console.error("Erreur handleApproval:", err.response?.data || err.message || err);
       setAlert({
         variant: 'danger',
-        message: err.response?.data?.message || "Erreur lors de la décision d'inscription."
+        message: err.response?.data?.message || "Erreur lors de l'opération"
       });
     }
   };
@@ -344,44 +348,48 @@ export default function ServicePlanning() {
   const handleExchangeDecision = async (exchangeId, decision) => {
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        setAlert({ variant: 'danger', message: "Authentification requise pour cette action." });
+        router.push('/front/login');
+        return;
+      }
       const decoded = jwt.decode(token);
-      console.log(`Deciding on exchange ID ${exchangeId} with decision ${decision}`);
 
       const response = await axios.put('/api/back/mod/exchanges', {
         exchangeId,
         decision,
-        approverId: decoded.id
+        approverId: decoded.id // Ensure this ID is available from your token
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       if (response.data.success) {
-        // Remove from pending exchanges if approved/rejected
-        setPendingExchanges(pendingExchanges.filter(ex => ex._id !== exchangeId));
-        // Update status in all exchanges
-        setAllExchanges(prevExchanges => prevExchanges.map(ex => 
-          ex._id === exchangeId ? { ...ex, status: decision === 'approve' ? 'accepté' : 'refusé' } : ex
+        // Remove from pending list if it was a pending exchange
+        setPendingExchanges(prev => prev.filter(ex => ex._id !== exchangeId));
+        // Update the status in the allExchanges list
+        setAllExchanges(prev => prev.map(ex =>
+          ex._id === exchangeId ? { ...ex, status: decision === 'approve' ? 'approved' : 'rejected' } : ex
         ));
         setAlert({
           variant: 'success',
           message: response.data.message
         });
-        await fetchGardes(); // Refresh the calendar to reflect changes
-        console.log(`Exchange ID ${exchangeId} ${decision}d successfully.`);
-      } else {
-        throw new Error(response.data.message || "Failed to make exchange decision.");
+        await fetchGardes(); // Refresh calendar events as gardes might have changed
       }
     } catch (err) {
-      console.error("Erreur handleExchangeDecision:", err.message, err.response?.data);
+      console.error("Erreur handleExchangeDecision:", err.response?.data || err.message || err);
       setAlert({
         variant: 'danger',
-        message: err.response?.data?.message || "Erreur lors de la décision d'échange."
+        message: err.response?.data?.message || "Erreur lors de la décision"
       });
     }
   };
 
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) {
+      return "Date invalide"; // Handle potentially invalid dates from backend
+    }
     return date.toLocaleDateString('fr-FR', {
       weekday: 'long',
       year: 'numeric',
@@ -391,13 +399,15 @@ export default function ServicePlanning() {
   };
 
   const getStatusBadge = (status) => {
-    switch(status) {
-      case 'en attente':
+    switch (status) {
+      case 'pending':
         return <Badge bg="warning" text="dark">En attente</Badge>;
-      case 'accepté':
+      case 'approved':
         return <Badge bg="success">Approuvé</Badge>;
-      case 'refusé':
+      case 'rejected':
         return <Badge bg="danger">Rejeté</Badge>;
+      case 'cancelled':
+        return <Badge bg="secondary">Annulé</Badge>; // Added for consistency
       default:
         return <Badge bg="secondary">{status}</Badge>;
     }
@@ -454,7 +464,7 @@ export default function ServicePlanning() {
                                 <p className="mb-1"><strong>Email:</strong> {request.email}</p>
                                 <p className="mb-1"><strong>Service:</strong> {request.service}</p>
                                 <small className="text-muted">
-                                  Demandé le: {new Date(request.createdAt).toLocaleDateString('fr-FR')}
+                                  Demandé le: {formatDate(request.createdAt)}
                                 </small>
                               </div>
                               <div>
@@ -492,13 +502,13 @@ export default function ServicePlanning() {
                               <div>
                                 <h5>Demande de {exchange.fromDoctor.prenom} {exchange.fromDoctor.nom}</h5>
                                 <p className="mb-1"><strong>Date de demande:</strong> {formatDate(exchange.createdAt)}</p>
-                                
+
                                 <div className="mt-2">
                                   <h6>Gardes à donner:</h6>
                                   <ul>
                                     {exchange.gardesToGive.map(garde => (
                                       <li key={garde._id}>
-                                        {formatDate(garde.date)} - {garde.nom} {garde.prenom}
+                                        {formatDate(garde.date)} - {garde.doctor?.nom} {garde.doctor?.prenom}
                                       </li>
                                     ))}
                                   </ul>
@@ -509,7 +519,7 @@ export default function ServicePlanning() {
                                   <ul>
                                     {exchange.gardesToGet.map(garde => (
                                       <li key={garde._id}>
-                                        {formatDate(garde.date)} - {garde.nom} {garde.prenom}
+                                        {formatDate(garde.date)} - {garde.doctor?.nom} {garde.doctor?.prenom}
                                       </li>
                                     ))}
                                   </ul>
@@ -552,15 +562,17 @@ export default function ServicePlanning() {
                       <h3 className="mt-3">Historique des échanges</h3>
                       <Dropdown>
                         <Dropdown.Toggle variant="outline-secondary" id="dropdown-filter">
-                          Filtre: {exchangeFilter === 'all' ? 'Tous' : 
-                                  exchangeFilter === 'pending' ? 'En attente' : 
-                                  exchangeFilter === 'approved' ? 'Approuvés' : 'Rejetés'}
+                          Filtre: {exchangeFilter === 'all' ? 'Tous' :
+                            exchangeFilter === 'pending' ? 'En attente' :
+                              exchangeFilter === 'approved' ? 'Approuvés' :
+                                exchangeFilter === 'rejected' ? 'Rejetés' : 'Annulés'}
                         </Dropdown.Toggle>
                         <Dropdown.Menu>
                           <Dropdown.Item onClick={() => setExchangeFilter('all')}>Tous</Dropdown.Item>
                           <Dropdown.Item onClick={() => setExchangeFilter('pending')}>En attente</Dropdown.Item>
                           <Dropdown.Item onClick={() => setExchangeFilter('approved')}>Approuvés</Dropdown.Item>
                           <Dropdown.Item onClick={() => setExchangeFilter('rejected')}>Rejetés</Dropdown.Item>
+                          <Dropdown.Item onClick={() => setExchangeFilter('cancelled')}>Annulés</Dropdown.Item>
                         </Dropdown.Menu>
                       </Dropdown>
                     </div>
@@ -580,16 +592,19 @@ export default function ServicePlanning() {
                                   {getStatusBadge(exchange.status)}
                                 </div>
                                 <p className="mb-1"><strong>Date de demande:</strong> {formatDate(exchange.createdAt)}</p>
-                                {exchange.approvedAt && (
-                                  <p className="mb-1"><strong>Date de décision:</strong> {formatDate(exchange.approvedAt)}</p>
+                                {exchange.respondedAt && ( // Use respondedAt as per your schema
+                                  <p className="mb-1"><strong>Date de décision:</strong> {formatDate(exchange.respondedAt)}</p>
                                 )}
-                                
+                                {exchange.respondedBy && exchange.respondedBy.nom && ( // Check for respondedBy existence
+                                  <p className="mb-1"><strong>Décision prise par:</strong> {exchange.respondedBy.prenom} {exchange.respondedBy.nom}</p>
+                                )}
+
                                 <div className="mt-2">
                                   <h6>Gardes à donner:</h6>
                                   <ul>
                                     {exchange.gardesToGive.map(garde => (
                                       <li key={garde._id}>
-                                        {formatDate(garde.date)} - {garde.nom} {garde.prenom}
+                                        {formatDate(garde.date)} - {garde.doctor?.nom} {garde.doctor?.prenom}
                                       </li>
                                     ))}
                                   </ul>
@@ -600,7 +615,7 @@ export default function ServicePlanning() {
                                   <ul>
                                     {exchange.gardesToGet.map(garde => (
                                       <li key={garde._id}>
-                                        {formatDate(garde.date)} - {garde.nom} {garde.prenom}
+                                        {formatDate(garde.date)} - {garde.doctor?.nom} {garde.doctor?.prenom}
                                       </li>
                                     ))}
                                   </ul>
@@ -613,7 +628,7 @@ export default function ServicePlanning() {
                                   </div>
                                 )}
                               </div>
-                              {exchange.status === 'en attente' && (
+                              {exchange.status === 'pending' && (
                                 <div>
                                   <Button
                                     variant="success"
@@ -642,6 +657,7 @@ export default function ServicePlanning() {
                           pending: 'en attente',
                           approved: 'approuvé',
                           rejected: 'rejeté',
+                          cancelled: 'annulé',
                           all: ''
                         }[exchangeFilter]} trouvé.
                       </Alert>
@@ -675,10 +691,10 @@ export default function ServicePlanning() {
                 <Form>
                   <Form.Group className="mb-3">
                     <Form.Label>Date</Form.Label>
-                    <Form.Control 
-                      type="text" 
-                      value={selectedDate} 
-                      disabled 
+                    <Form.Control
+                      type="text"
+                      value={selectedDate}
+                      disabled
                     />
                   </Form.Group>
                   <Form.Group className="mb-3">
