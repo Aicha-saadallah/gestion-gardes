@@ -1,0 +1,29 @@
+{
+  "title": "Administrator/Supervisor Registration",
+  "labels": {
+    "name": "Last Name",
+    "firstname": "First Name",
+    "role": "Role",
+    "email": "Email",
+    "password": "Password"
+  },
+  "placeholders": {
+    "select_role": "Select a role",
+    "admin": "Administrator",
+    "supervisor": "Supervisor"
+  },
+  "password_hint": "(Minimum 6 characters)",
+  "buttons": {
+    "submit": "Confirm",
+    "loading": "Submitting...",
+    "continue": "Continue"
+  },
+  "messages": {
+    "success_title": "✅ Registration Successful",
+    "required_fields": "❌ All required fields must be filled",
+    "invalid_email": "❌ Please enter a valid email address",
+    "invalid_password": "❌ Password must be at least 6 characters",
+    "registration_error": "An error occurred during registration",
+    "success_message": "{{role}} registered successfully."
+  }
+}

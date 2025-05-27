@@ -6,20 +6,12 @@
       "email": "Adresse courriel",
       "password": "Mot de passe"
     },
-    "placeholders": {
-      "email": "Entrez votre email",
-      "password": "Entrez votre mot de passe"
-    },
     "buttons": {
       "submit": "Se connecter"
     },
     "links": {
       "forgot_password": "Mot de passe oublié ?",
       "create_account": "Créer un compte"
-    },
-    "errors": {
-      "invalid_credentials": "Email ou mot de passe incorrect",
-      "server_error": "Une erreur est survenue lors de la connexion"
     }
   }
 }

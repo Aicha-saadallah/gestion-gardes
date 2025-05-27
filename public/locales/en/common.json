@@ -21,5 +21,9 @@
       "invalid_credentials": "Incorrect email or password",
       "server_error": "An error occurred during login"
     }
+  },
+  "test": {
+    "title": "This is a test",
+    "description": "Testing translations in Next.js"
   }
 }
